@@ -1,0 +1,106 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+  // output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  ADMIN
+  DIRECTION
+  CONTROLEUR
+  AUDITEUR
+  COMPTABLE
+  CHEF_AGENCE
+  CAISSIER
+}
+
+enum AuditAction {
+  CREATION
+  MODIFICATION
+  VALIDATION
+  SUPPRESSION
+  REINITIALISATION_MOT_DE_PASSE
+  REJET
+  CORRECTION
+  IMPORT
+  CONNEXION
+  DECONNEXION
+}
+
+model User {
+  id String @id @default(cuid())
+
+  prenom String
+  nom    String
+
+  email     String  @unique
+  telephone String? @unique
+
+  passwordHash String
+
+  mustChangePassword Boolean @default(true)
+
+  role Role
+
+  actif Boolean @default(true)
+
+  refreshTokens RefreshToken[]
+
+  audits AuditLog[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model RefreshToken {
+  id String @id @default(cuid())
+
+  tokenHash String @unique
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  expiresAt DateTime
+
+  revoked Boolean @default(false)
+
+  revokedAt DateTime?
+
+  replacedBy String?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model AuditLog {
+  id String @id @default(cuid())
+
+  action AuditAction
+
+  entity String
+
+  entityId String?
+
+  userId String?
+
+  user User? @relation(fields: [userId], references: [id])
+
+  ip String?
+
+  before Json?
+
+  after Json?
+
+  message String?
+
+  createdAt DateTime @default(now())
+}
