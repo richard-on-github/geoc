@@ -10,7 +10,7 @@ export function authorize(...allowedRoles: Role[]) {
     }
 
     if (!allowedRoles.includes(req.user.role)) {
-      return next(ApiError.forbidden(MESSAGES.ACCESS_DENIED));
+      return next(ApiError.forbidden(MESSAGES.FORBIDDEN));
     }
 
     next();

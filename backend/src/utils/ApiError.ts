@@ -3,12 +3,15 @@ import { HTTP_STATUS } from "../constants/http-status.js";
 export class ApiError extends Error {
   public readonly statusCode: number;
   public readonly isOperational: boolean;
+  public readonly isApiError = true;
 
   constructor(statusCode: number, message: string, isOperational = true) {
     super(message);
+    this.name = "ApiError";
     this.statusCode = statusCode;
     this.isOperational = isOperational;
-    Object.setPrototypeOf(this, ApiError.prototype);
+
+    Object.setPrototypeOf(this, new.target.prototype);
   }
 
   static badRequest(message: string) {

@@ -7,6 +7,7 @@ import { auditRouter } from "./modules/audit/audit.router.js";
 import { errorMiddleware } from "./middlewares/error.middleware.js";
 import { notFoundMiddleware } from "./middlewares/not-found.middleware.js";
 import { ROUTES } from "./constants/routes.js";
+import { permissionRouter } from "./modules/permissions/permission.router.js";
 
 const app = express();
 
@@ -18,6 +19,7 @@ app.use(express.json());
 app.use(ROUTES.AUTH.BASE, authRouter);
 app.use(ROUTES.USERS.BASE, userRouter);
 app.use(ROUTES.ROLES.BASE, roleRouter);
+app.use(ROUTES.PERMISSIONS.BASE, permissionRouter);
 app.use(ROUTES.AUDIT.BASE, auditRouter);
 
 // 404 handler

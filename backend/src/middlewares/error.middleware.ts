@@ -6,20 +6,16 @@ import { MESSAGES } from "../constants/messages.js";
 import { errorResponse } from "../utils/response.js";
 
 export function errorMiddleware(
-  err: Error,
+  err: any,
   _req: Request,
   res: Response,
   _next: NextFunction,
 ) {
-  // Erreurs opérationnelles ApiError
-  if (err instanceof ApiError) {
-    const data = (err as any).validationErrors
-      ? { errors: (err as any).validationErrors }
-      : null;
+  if (err.isApiError || err.name === "ApiError" || err instanceof ApiError) {
+    const data = err.validationErrors ? { errors: err.validationErrors } : null;
     return errorResponse(res, err.statusCode, err.message, data);
   }
 
-  // Erreurs Prisma
   if (err instanceof Prisma.PrismaClientKnownRequestError) {
     if (err.code === "P2002") {
       return errorResponse(
@@ -37,7 +33,6 @@ export function errorMiddleware(
     }
   }
 
-  // Erreurs JWT non capturées
   if (
     err.name === "JsonWebTokenError" ||
     err.name === "TokenExpiredError" ||
@@ -46,7 +41,6 @@ export function errorMiddleware(
     return errorResponse(res, HTTP_STATUS.UNAUTHORIZED, MESSAGES.INVALID_TOKEN);
   }
 
-  // Erreur inconnue
   console.error("Unhandled error:", err);
   return errorResponse(
     res,

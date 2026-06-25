@@ -1,7 +1,7 @@
 export const MESSAGES = {
   INVALID_CREDENTIALS: "Identifiants invalides",
-  ACCESS_DENIED: "Accès refusé",
   UNAUTHORIZED: "Non autorisé",
+  FORBIDDEN: "Accès interdit",
   USER_NOT_FOUND: "Utilisateur introuvable",
   EMAIL_ALREADY_EXISTS: "Cet email est déjà utilisé",
   ACCOUNT_DISABLED: "Compte désactivé",
@@ -10,6 +10,7 @@ export const MESSAGES = {
   REFRESH_TOKEN_REVOKED: "Refresh token révoqué",
   VALIDATION_ERROR: "Erreur de validation",
   RESOURCE_NOT_FOUND: "Ressource introuvable",
+  RESOURCE_ALREADY_EXISTS: "Ressource déjà existante",
   INTERNAL_SERVER_ERROR: "Erreur interne du serveur",
   PASSWORD_CHANGED: "Mot de passe changé avec succès",
   PASSWORD_RESET: "Mot de passe réinitialisé avec succès",
