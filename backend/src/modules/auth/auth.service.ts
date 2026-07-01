@@ -18,6 +18,25 @@ import type {
 } from "./auth.interface.js";
 import { logAudit } from "../../utils/audit.js";
 import { AuditAction } from "@prisma/client";
+import {userRepository} from "../users/user.repository.js";
+
+function buildJwtPayload(user: any) {
+  const roleCode = user.role?.code || "USER";
+  const rolePermissions =
+    user.role?.permissions.map((rp: any) => rp.permission.code) || [];
+  const directPermissions =
+    user.permissions.map((up: any) => up.permission.code) || [];
+
+  const allPermissions = Array.from(
+    new Set([...rolePermissions, ...directPermissions]),
+  );
+
+  return {
+    sub: user.id,
+    role: roleCode,
+    permissions: allPermissions,
+  };
+}
 
 export const authService = {
   async login(input: LoginInput, ip?: string): Promise<AuthTokens> {
@@ -38,7 +57,9 @@ export const authService = {
       throw ApiError.unauthorized(MESSAGES.INVALID_CREDENTIALS);
     }
 
-    const accessToken = generateAccessToken({ sub: user.id, role: user.role });
+    const payload = buildJwtPayload(user);
+    const accessToken = generateAccessToken(payload);
+
     const refreshTokenJti = crypto.randomUUID();
     const refreshToken = generateRefreshToken({
       sub: user.id,
@@ -46,13 +67,15 @@ export const authService = {
     });
 
     const refreshTokenHash = await authRepository.hashToken(refreshToken);
-    const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 jours
+    const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
     await authRepository.createRefreshToken(
       user.id,
       refreshTokenHash,
       expiresAt,
     );
+
+    await userRepository.updateLastLogin(user.id);
 
     await logAudit({
       action: AuditAction.CONNEXION,
@@ -72,10 +95,9 @@ export const authService = {
   ): Promise<AuthTokens> {
     const payload = verifyRefreshToken(input.refreshToken);
     const tokenHash = await authRepository.hashToken(input.refreshToken);
-
     const storedToken = await authRepository.findRefreshTokenByHash(tokenHash);
+
     if (!storedToken) {
-      // Token hash introuvable, pourrait être déjà révoqué
       throw ApiError.unauthorized(MESSAGES.REFRESH_TOKEN_REVOKED);
     }
 
@@ -83,15 +105,12 @@ export const authService = {
       throw ApiError.unauthorized(MESSAGES.REFRESH_TOKEN_REVOKED);
     }
 
-    // Vérifier que le payload correspond
     if (storedToken.userId !== payload.sub) {
       throw ApiError.unauthorized(MESSAGES.INVALID_TOKEN);
     }
 
-    // Révoquer l'ancien token
     await authRepository.revokeRefreshToken(storedToken.id);
 
-    // Générer un nouveau token
     const user = await authRepository.findUserById(payload.sub);
     if (!user || !user.actif) {
       throw ApiError.unauthorized(MESSAGES.USER_NOT_FOUND);
@@ -107,7 +126,8 @@ export const authService = {
 
     await authRepository.createRefreshToken(user.id, newTokenHash, expiresAt);
 
-    const accessToken = generateAccessToken({ sub: user.id, role: user.role });
+    const newJwtPayload = buildJwtPayload(user);
+    const accessToken = generateAccessToken(newJwtPayload);
 
     return { accessToken, refreshToken: newRefreshToken };
   },
@@ -164,7 +184,7 @@ export const authService = {
       entity: "User",
       entityId: userId,
       userId,
-      ip:ip??"",
+      ip: ip ?? "",
       message: "Changement de mot de passe",
     });
   },
@@ -185,7 +205,7 @@ export const authService = {
       entity: "User",
       entityId: input.userId,
       userId: adminId,
-      ip:ip??"",
+      ip: ip ?? "",
       message: `Mot de passe réinitialisé par l'administrateur ${adminId}`,
     });
   },
@@ -196,8 +216,11 @@ export const authService = {
       throw ApiError.notFound(MESSAGES.USER_NOT_FOUND);
     }
 
-    // Ne pas renvoyer le hash du mot de passe
     const { passwordHash, ...userWithoutPassword } = user;
-    return userWithoutPassword;
+
+    return {
+      ...userWithoutPassword,
+      permissions: buildJwtPayload(user).permissions,
+    };
   },
 };

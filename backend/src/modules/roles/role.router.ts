@@ -52,26 +52,4 @@ router.delete(
   asyncHandler(roleController.delete),
 );
 
-// Sous-routes Relations Role-Permissions
-router.get(
-  "/:id/permissions",
-  requirePermissions("role.read", "permission.read"),
-  validate({ params: roleIdParamsSchema }),
-  asyncHandler(roleController.findRolePermissions),
-);
-
-router.post(
-  "/:id/permissions",
-  requirePermissions("role.update"),
-  validate({ params: roleIdParamsSchema, body: addRolePermissionsSchema }),
-  asyncHandler(roleController.addRolePermissions),
-);
-
-router.delete(
-  "/:roleId/permissions/:permissionId",
-  requirePermissions("role.update"),
-  validate({ params: deleteRolePermissionParamsSchema }),
-  asyncHandler(roleController.deleteRolePermission),
-);
-
 export { router as roleRouter };

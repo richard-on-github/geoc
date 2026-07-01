@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { authController } from "./auth.controller.js";
 import { authenticate } from "../../middlewares/auth.middleware.js";
+import { requirePermissions } from "../../middlewares/permission.middleware.js"; // <-- Remplacement
 import { validate } from "../../middlewares/validate.middleware.js";
 import { asyncHandler } from "../../utils/asyncHandler.js";
 import {
@@ -10,8 +11,6 @@ import {
   resetPasswordSchema,
 } from "./auth.schema.js";
 import { ROUTES } from "../../constants/routes.js";
-import { authorize } from "../../middlewares/role.middleware.js";
-import { Role } from "../../constants/roles.js";
 
 const router = Router();
 
@@ -45,7 +44,7 @@ router.post(
 router.post(
   ROUTES.AUTH.RESET_PASSWORD,
   authenticate(),
-  authorize(Role.ADMIN, Role.DIRECTION),
+  requirePermissions("user.update"),
   validate({ body: resetPasswordSchema }),
   asyncHandler(authController.resetPassword),
 );

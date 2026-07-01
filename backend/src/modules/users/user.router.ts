@@ -15,7 +15,6 @@ import { ROUTES } from "../../constants/routes.js";
 
 const router = Router();
 
-// L'authentification reste globale pour ce routeur
 router.use(authenticate());
 
 router.get(

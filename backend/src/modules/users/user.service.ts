@@ -1,4 +1,5 @@
 import { userRepository } from "./user.repository.js";
+import { prisma } from "../../config/prisma.js";
 import { ApiError } from "../../utils/ApiError.js";
 import { MESSAGES } from "../../constants/messages.js";
 import { HTTP_STATUS } from "../../constants/http-status.js";
@@ -10,7 +11,6 @@ import type {
   UpdateUserInput,
   UpdateUserStatusInput,
   UserQueryParams,
-  UserResponse,
 } from "./user.interface.js";
 import { getPaginationMeta } from "../../utils/pagination.js";
 
@@ -30,16 +30,26 @@ export const userService = {
   },
 
   async create(input: CreateUserInput, actorId: string, ip?: string) {
-    // Vérifier si l'email existe déjà
     const existingUser = await userRepository.findByEmail(input.email);
     if (existingUser) {
       throw ApiError.conflict(MESSAGES.EMAIL_ALREADY_EXISTS);
     }
 
-    const password = input.password || "ChangeMe123!"; // Mot de passe par défaut
+    const roleExists = await prisma.role.findUnique({
+      where: { id: input.roleId },
+    });
+    if (!roleExists) {
+      throw ApiError.badRequest("Le rôle spécifié est introuvable");
+    }
+
+    const password = input.password || "ChangeMe123!";
     const passwordHash = await hashPassword(password);
 
-    const user = await userRepository.create({ ...input, passwordHash });
+    const user = await userRepository.create({
+      ...input,
+      passwordHash,
+      permissionIds: input.permissionIds
+    });
 
     await logAudit({
       action: AuditAction.CREATION,
@@ -65,11 +75,19 @@ export const userService = {
       throw ApiError.notFound(MESSAGES.USER_NOT_FOUND);
     }
 
-    // Vérification unicité email si changement
     if (input.email && input.email !== user.email) {
       const existing = await userRepository.findByEmail(input.email, id);
       if (existing) {
         throw ApiError.conflict(MESSAGES.EMAIL_ALREADY_EXISTS);
+      }
+    }
+
+    if (input.roleId) {
+      const roleExists = await prisma.role.findUnique({
+        where: { id: input.roleId },
+      });
+      if (!roleExists) {
+        throw ApiError.badRequest("Le rôle spécifié est introuvable");
       }
     }
 

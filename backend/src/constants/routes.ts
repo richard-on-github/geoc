@@ -13,6 +13,8 @@ export const ROUTES = {
     BASE: "/api/users",
     BY_ID: "/:id",
     STATUS: "/:id/status",
+    PERMISSIONS: "/:id/permissions",
+    PERMISSION_BY_ID: "/:userId/permissions/:permissionId",
   },
 
   ROLES: {

@@ -50,6 +50,7 @@ model User {
 
   audits AuditLog[]
 
+  lastLoginAt DateTime?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }

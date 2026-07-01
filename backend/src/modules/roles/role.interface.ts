@@ -4,6 +4,7 @@ export interface CreateRoleInput {
   nom: string;
   code: string;
   description?: string;
+  permissionIds?: string[];
 }
 
 export interface UpdateRoleInput {
@@ -11,6 +12,7 @@ export interface UpdateRoleInput {
   code?: string;
   description?: string;
   actif?: boolean;
+  permissionIds?: string[];
 }
 
 export interface RoleQueryParams {

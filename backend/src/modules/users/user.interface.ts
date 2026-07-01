@@ -1,5 +1,4 @@
 import type { User } from "@prisma/client";
-import { Role } from "@prisma/client";
 
 export type UserResponse = Omit<User, "passwordHash" | "refreshTokens">;
 
@@ -8,8 +7,9 @@ export interface CreateUserInput {
   nom: string;
   email: string;
   telephone?: string;
-  role: Role;
-  password?: string; // mot de passe initial (optionnel, sinon généré)
+  roleId: string;
+  password?: string;
+  permissionIds?: string[];
 }
 
 export interface UpdateUserInput {
@@ -17,8 +17,9 @@ export interface UpdateUserInput {
   nom?: string;
   email?: string;
   telephone?: string | null;
-  role?: Role;
+  roleId?: string;
   mustChangePassword?: boolean;
+  permissionIds?: string[];
 }
 
 export interface UpdateUserStatusInput {
@@ -29,7 +30,7 @@ export interface UserQueryParams {
   page: number;
   limit: number;
   search?: string;
-  role?: Role;
+  roleId?: string;
   actif?: boolean;
   sortBy?: string;
   sortOrder?: "asc" | "desc";

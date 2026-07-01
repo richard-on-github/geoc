@@ -1,28 +1,38 @@
 import { prisma } from "../../config/prisma.js";
-import type { RefreshTokenPayload } from "../../utils/jwt.js";
-import { hashPassword } from "../../utils/password.js";
 import bcrypt from "bcryptjs";
+import crypto from "crypto";
+
+const userWithPermissionsInclude = {
+  role: {
+    include: {
+      permissions: {
+        include: { permission: true },
+      },
+    },
+  },
+  permissions: {
+    include: { permission: true },
+  },
+};
 
 export const authRepository = {
   async findUserByEmail(email: string) {
     return prisma.user.findUnique({
       where: { email },
+      include: userWithPermissionsInclude,
     });
   },
 
   async findUserById(id: string) {
     return prisma.user.findUnique({
       where: { id },
+      include: userWithPermissionsInclude,
     });
   },
 
   async createRefreshToken(userId: string, tokenHash: string, expiresAt: Date) {
     return prisma.refreshToken.create({
-      data: {
-        tokenHash,
-        userId,
-        expiresAt,
-      },
+      data: { tokenHash, userId, expiresAt },
     });
   },
 
@@ -64,6 +74,7 @@ export const authRepository = {
   },
 
   async hashToken(token: string): Promise<string> {
-    return bcrypt.hash(token, 10);
+    // return bcrypt.hash(token, 10);
+    return crypto.createHash("sha256").update(token).digest("hex");
   },
 };

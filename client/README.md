@@ -1,32 +1,68 @@
-# React + TypeScript + Vite
+# GEOC — Gestion Électronique des Opérations de la Caisse
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+Application interne LONATO Togo.
 
-Currently, two official plugins are available:
+## Prérequis
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- Node.js 20+
+- npm 10+
 
-## React Compiler
+## Démarrage rapide
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+```bash
+# 1. Installer les dépendances
+npm install
 
-## Expanding the Oxlint configuration
+# 2. Copier les variables d'environnement
+copy .env.example .env
 
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
+# 3. Ajuster .env selon votre environnement local
+# VITE_API_BASE_URL=http://localhost:4000/api
 
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+# 4. Lancer le serveur de développement
+npm run dev
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+L'application sera disponible sur http://localhost:3000
+
+## Scripts
+
+| Commande | Description |
+|---|---|
+| `npm run dev` | Serveur de développement |
+| `npm run build` | Build de production |
+| `npm run preview` | Prévisualiser le build |
+| `npm run lint` | Vérification ESLint |
+| `npm run lint:fix` | Correction automatique ESLint |
+| `npm run format` | Formatage Prettier |
+| `npm run type-check` | Vérification TypeScript sans build |
+
+## Extensions VSCode recommandées
+
+Ouvrir le projet dans VSCode affiche une notification pour installer les extensions recommandées (`.vscode/extensions.json`).
+
+## Architecture
+
+```
+src/
+  app/           # Configuration, providers, routeur, layouts
+  features/      # Modules métier (auth, users, security, audit, dashboard)
+  shared/        # Code partagé (composants, hooks, utils, types)
+  styles/        # Design system Tailwind v4
+  types/         # Types globaux (env.d.ts)
+  assets/        # Ressources statiques
+```
+
+## Stack technique
+
+React 19 · TypeScript strict · Vite · React Router v7 · TanStack Query · Zustand · Axios · Tailwind CSS v4 · shadcn/ui · React Hook Form · Zod · TanStack Table
+
+## Ajouter des composants shadcn/ui
+
+```bash
+npx shadcn@latest add button
+npx shadcn@latest add dialog
+# etc.
+```
+
+Les composants sont générés dans `src/shared/ui/`.
