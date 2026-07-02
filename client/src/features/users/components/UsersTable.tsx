@@ -5,9 +5,19 @@ import {
   type ColumnDef,
   type SortingState,
   type PaginationState,
+  type Row,
+  type Table,
 } from '@tanstack/react-table'
-import { useState, useMemo } from 'react'
-import { ArrowUpDown, ArrowUp, ArrowDown, MoreHorizontal, Users } from 'lucide-react'
+import { useState, useMemo, useRef, useEffect } from 'react'
+import {
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+  MoreHorizontal,
+  Users,
+  ChevronLeft,
+  ChevronRight,
+} from 'lucide-react'
 import { useUsers } from '../hooks'
 import { UserStatusBadge } from './UserStatusBadge'
 import { EmptyState } from '@/shared/components/feedback/EmptyState'
@@ -23,6 +33,114 @@ interface UsersTableProps {
   onViewDetail: (userId: string) => void
 }
 
+interface UserActionsMenuProps {
+  user: User
+  row: Row<User>
+  table: Table<User>
+  actionOpen: string | null
+  setActionOpen: (id: string | null) => void
+  onViewDetail: (userId: string) => void
+  onEdit: (user: User) => void
+  onToggleStatus: (user: User) => void
+  onDelete: (user: User) => void
+}
+
+function UserActionsMenu({
+  user,
+  row,
+  table,
+  actionOpen,
+  setActionOpen,
+  onViewDetail,
+  onToggleStatus,
+  onDelete,
+}: UserActionsMenuProps) {
+  const isOpen = actionOpen === user.id
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!isOpen) return
+
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setActionOpen(null)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [isOpen, setActionOpen])
+
+  const totalRows = table.getRowModel().rows.length
+  const isNearBottom = row.index >= totalRows - 3 && totalRows > 3
+
+  return (
+    <div ref={menuRef} className="relative flex justify-end">
+      <button
+        type="button"
+        aria-label="Actions"
+        onClick={(e) => {
+          e.stopPropagation()
+          setActionOpen(isOpen ? null : user.id)
+        }}
+        className="rounded-md p-1.5 text-[hsl(var(--muted-foreground))] transition-colors hover:bg-[hsl(var(--muted))] hover:text-[hsl(var(--foreground))]"
+      >
+        <MoreHorizontal size={16} aria-hidden="true" />
+      </button>
+
+      {isOpen && (
+        <div
+          className={cn(
+            'absolute z-20 w-48 rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] py-1 shadow-md',
+            isNearBottom ? 'right-0 bottom-full mb-1' : 'top-full right-0 mt-1',
+          )}
+          role="menu"
+        >
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => {
+              setActionOpen(null)
+              onViewDetail(user.id)
+            }}
+            className="flex w-full items-center px-3 py-2 text-sm transition-colors hover:bg-[hsl(var(--muted))]"
+          >
+            Consulter
+          </button>
+
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => {
+              setActionOpen(null)
+              onToggleStatus(user)
+            }}
+            className="flex w-full items-center px-3 py-2 text-sm transition-colors hover:bg-[hsl(var(--muted))]"
+          >
+            {user.isActive ? 'Désactiver' : 'Activer'}
+          </button>
+
+          <div className="my-1 border-t border-[hsl(var(--border))]" />
+
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => {
+              setActionOpen(null)
+              onDelete(user)
+            }}
+            className="flex w-full items-center px-3 py-2 text-sm text-[hsl(var(--destructive))] transition-colors hover:bg-[hsl(var(--destructive))]/10"
+          >
+            Supprimer
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
 const PAGE_SIZES = [10, 20, 50]
 
 export function UsersTable({
@@ -35,6 +153,11 @@ export function UsersTable({
   const [sorting, setSorting] = useState<SortingState>([])
   const [pagination, setPagination] = useState<PaginationState>({ pageIndex: 0, pageSize: 10 })
   const [actionOpen, setActionOpen] = useState<string | null>(null)
+
+  // CRITIQUE : Réinitialiser la pageIndex à 0 (Page 1) dès que la recherche change
+  useEffect(() => {
+    setPagination((p) => ({ ...p, pageIndex: 0 }))
+  }, [search])
 
   const queryParams = useMemo(
     () => ({
@@ -131,77 +254,19 @@ export function UsersTable({
         id: 'actions',
         header: '',
         enableSorting: false,
-        cell: ({ row }) => {
-          const user = row.original
-          const isOpen = actionOpen === user.id
-          return (
-            <div className="relative flex justify-end">
-              <button
-                type="button"
-                aria-label="Actions"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  setActionOpen(isOpen ? null : user.id)
-                }}
-                className="rounded-md p-1.5 text-[hsl(var(--muted-foreground))] transition-colors hover:bg-[hsl(var(--muted))] hover:text-[hsl(var(--foreground))]"
-              >
-                <MoreHorizontal size={16} aria-hidden="true" />
-              </button>
-              {isOpen && (
-                <div
-                  className="absolute top-full right-0 z-20 mt-1 w-48 rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] py-1 shadow-md"
-                  role="menu"
-                >
-                  <button
-                    type="button"
-                    role="menuitem"
-                    onClick={() => {
-                      setActionOpen(null)
-                      onViewDetail(user.id)
-                    }}
-                    className="flex w-full items-center px-3 py-2 text-sm transition-colors hover:bg-[hsl(var(--muted))]"
-                  >
-                    Consulter
-                  </button>
-                  <button
-                    type="button"
-                    role="menuitem"
-                    onClick={() => {
-                      setActionOpen(null)
-                      onEdit(user)
-                    }}
-                    className="flex w-full items-center px-3 py-2 text-sm transition-colors hover:bg-[hsl(var(--muted))]"
-                  >
-                    Modifier
-                  </button>
-                  <button
-                    type="button"
-                    role="menuitem"
-                    onClick={() => {
-                      setActionOpen(null)
-                      onToggleStatus(user)
-                    }}
-                    className="flex w-full items-center px-3 py-2 text-sm transition-colors hover:bg-[hsl(var(--muted))]"
-                  >
-                    {user.isActive ? 'Désactiver' : 'Activer'}
-                  </button>
-                  <div className="my-1 border-t border-[hsl(var(--border))]" />
-                  <button
-                    type="button"
-                    role="menuitem"
-                    onClick={() => {
-                      setActionOpen(null)
-                      onDelete(user)
-                    }}
-                    className="flex w-full items-center px-3 py-2 text-sm text-[hsl(var(--destructive))] transition-colors hover:bg-[hsl(var(--destructive))]/10"
-                  >
-                    Supprimer
-                  </button>
-                </div>
-              )}
-            </div>
-          )
-        },
+        cell: ({ row, table }) => (
+          <UserActionsMenu
+            user={row.original}
+            row={row}
+            table={table}
+            actionOpen={actionOpen}
+            setActionOpen={setActionOpen}
+            onViewDetail={onViewDetail}
+            onEdit={onEdit}
+            onToggleStatus={onToggleStatus}
+            onDelete={onDelete}
+          />
+        ),
       },
     ],
     [actionOpen, onEdit, onDelete, onToggleStatus, onViewDetail],
@@ -219,7 +284,7 @@ export function UsersTable({
     manualPagination: true,
   })
 
-  /* ---- Skeleton ---- */
+  /* ---- Squelette de chargement ---- */
   if (isLoading) {
     return (
       <div className="overflow-hidden rounded-lg border border-[hsl(var(--border))]">
@@ -264,7 +329,7 @@ export function UsersTable({
     )
   }
 
-  /* ---- Empty ---- */
+  /* ---- État vide ---- */
   if (!isLoading && (!data?.items || data.items.length === 0)) {
     return (
       <div className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))]">
@@ -279,10 +344,14 @@ export function UsersTable({
     )
   }
 
-  /* ---- Table ---- */
+  // Calcul des index précis pour le totalisateur (ex: 1 à 10 sur 24)
+  const total = data?.total ?? 0
+  const from = total === 0 ? 0 : pagination.pageIndex * pagination.pageSize + 1
+  const to = Math.min((pagination.pageIndex + 1) * pagination.pageSize, total)
+
   return (
-    <div className="space-y-3">
-      <div className="overflow-hidden rounded-lg border border-[hsl(var(--border))]">
+    <div className="space-y-4">
+      <div className="overflow-hidden rounded-lg border border-[hsl(var(--border))] shadow-sm">
         <table className="w-full text-sm" aria-label="Liste des utilisateurs">
           <thead className="bg-[hsl(var(--muted))]">
             {table.getHeaderGroups().map((hg) => (
@@ -332,59 +401,75 @@ export function UsersTable({
         </table>
       </div>
 
-      {/* Pagination */}
-      <div className="flex items-center justify-between text-sm">
-        <p className="text-[hsl(var(--muted-foreground))]">
-          {data !== undefined && (
-            <>
-              {pagination.pageIndex * pagination.pageSize + 1}–
-              {Math.min((pagination.pageIndex + 1) * pagination.pageSize, data.total)} sur{' '}
-              {data.total} utilisateur{data.total > 1 ? 's' : ''}
-            </>
-          )}
-        </p>
-        <div className="flex items-center gap-3">
-          <select
-            value={pagination.pageSize}
-            onChange={(e) => {
-              setPagination((p) => ({ ...p, pageIndex: 0, pageSize: Number(e.target.value) }))
-            }}
-            className="rounded-[var(--radius-sm)] border border-[hsl(var(--border))] bg-[hsl(var(--card))] px-2 py-1 text-xs"
-            aria-label="Lignes par page"
-          >
-            {PAGE_SIZES.map((s) => (
-              <option key={s} value={s}>
-                {s} / page
-              </option>
-            ))}
-          </select>
-          <div className="flex items-center gap-1">
-            <button
-              type="button"
-              disabled={!table.getCanPreviousPage()}
-              onClick={() => {
-                table.previousPage()
-              }}
-              className="rounded-[var(--radius-sm)] border border-[hsl(var(--border))] px-2 py-1 text-xs transition-colors hover:bg-[hsl(var(--muted))] disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              Précédent
-            </button>
-            <span className="px-2 text-[hsl(var(--muted-foreground))]">
-              Page {pagination.pageIndex + 1} / {data?.totalPages ?? 1}
-            </span>
-            <button
-              type="button"
-              disabled={!table.getCanNextPage()}
-              onClick={() => {
-                table.nextPage()
-              }}
-              className="rounded-[var(--radius-sm)] border border-[hsl(var(--border))] px-2 py-1 text-xs transition-colors hover:bg-[hsl(var(--muted))] disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              Suivant
-            </button>
+      {/* Barre de Pagination Unifiée (Structure Spécifique Audit) */}
+      {total > 0 && (
+        <div className="flex flex-col items-center justify-between gap-4 border-t border-[hsl(var(--border))] pt-3 text-sm sm:flex-row">
+          {/* Section Gauche : Totalisateur Pro */}
+          <p className="font-medium text-[hsl(var(--muted-foreground))]">
+            {from} à {to} sur {total} utilisateur{total > 1 ? 's' : ''}
+          </p>
+
+          {/* Section Droite : Contrôles */}
+          <div className="flex flex-wrap items-center gap-6">
+            {/* Sélecteur de taille (Lignes par page via boutons) */}
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-medium text-[hsl(var(--muted-foreground))]">
+                Lignes par page :
+              </span>
+              <div className="flex items-center gap-1">
+                {PAGE_SIZES.map((size) => (
+                  <button
+                    key={size}
+                    type="button"
+                    onClick={() => {
+                      setPagination((p) => ({ ...p, pageIndex: 0, pageSize: size }))
+                    }}
+                    className={cn(
+                      'h-7 min-w-[28px] rounded-[var(--radius-sm)] border border-[hsl(var(--border))] px-1.5 text-xs font-medium transition-colors hover:bg-[hsl(var(--muted))]',
+                      pagination.pageSize === size
+                        ? 'border-[hsl(var(--primary))] bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))]'
+                        : 'bg-[hsl(var(--card))] text-[hsl(var(--foreground))]',
+                    )}
+                  >
+                    {size}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Navigation des pages (Chevrons) */}
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                disabled={!table.getCanPreviousPage()}
+                onClick={() => {
+                  table.previousPage()
+                }}
+                className="flex h-7 w-7 items-center justify-center rounded-[var(--radius-sm)] border border-[hsl(var(--border))] bg-[hsl(var(--card))] transition-colors hover:bg-[hsl(var(--muted))] disabled:cursor-not-allowed disabled:opacity-40"
+                aria-label="Page précédente"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+
+              <span className="px-1 text-xs font-medium text-[hsl(var(--muted-foreground))]">
+                {pagination.pageIndex + 1} / {data?.totalPages ?? 1}
+              </span>
+
+              <button
+                type="button"
+                disabled={!table.getCanNextPage()}
+                onClick={() => {
+                  table.nextPage()
+                }}
+                className="flex h-7 w-7 items-center justify-center rounded-[var(--radius-sm)] border border-[hsl(var(--border))] bg-[hsl(var(--card))] transition-colors hover:bg-[hsl(var(--muted))] disabled:cursor-not-allowed disabled:opacity-40"
+                aria-label="Page suivante"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   )
 }

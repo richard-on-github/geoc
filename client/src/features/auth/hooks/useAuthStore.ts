@@ -54,9 +54,9 @@ export const useAuthStore = create<AuthStore>()(
       },
 
       clearSession: () => {
-        Object.values(AUTH_STORAGE_KEYS).forEach((key) =>
-          localStorage.removeItem(key),
-        )
+        Object.values(AUTH_STORAGE_KEYS).forEach((key) => {
+          localStorage.removeItem(key)
+        })
         set({
           user: null,
           accessToken: null,
@@ -82,10 +82,6 @@ export const useAuthStore = create<AuthStore>()(
     },
   ),
 )
-
-/* ============================================================
-   Sélecteurs dérivés — évitent les re-renders inutiles
-   ============================================================ */
 
 export const selectUser = (state: AuthStore) => state.user
 export const selectIsAuthenticated = (state: AuthStore) => state.isAuthenticated

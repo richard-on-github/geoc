@@ -19,7 +19,7 @@ export const paginationSchema = z.object({
     }),
   search: z.string().optional(),
   sortBy: z.string().optional(),
-  sortOrder: z.enum(["asc", "desc"]).optional().default("asc"),
+  sortOrder: z.enum(["asc", "desc"]).optional().default("desc"),
 });
 
 export type PaginationParams = z.infer<typeof paginationSchema>;

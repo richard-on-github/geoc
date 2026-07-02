@@ -40,7 +40,7 @@ export const userQuerySchema = z.object({
       return undefined;
     }),
   sortBy: z.string().optional(),
-  sortOrder: z.enum(["asc", "desc"]).optional().default("asc"),
+  sortOrder: z.enum(["asc", "desc"]).optional().default("desc"),
 });
 
 export const userIdParamsSchema = z.object({

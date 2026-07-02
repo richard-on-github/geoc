@@ -4,7 +4,6 @@ import { UserPlus, Search } from 'lucide-react'
 import { PageHeader } from '@/shared/components/layout/PageHeader'
 import { Can } from '@/shared/components/navigation/Can'
 import { UsersTable } from '../components/UsersTable'
-import { CreateUserModal } from '../components/CreateUserModal'
 import { DeleteUserDialog } from '../components/DeleteUserDialog'
 import { useToggleUserStatus } from '../hooks'
 import type { User } from '../types'
@@ -14,7 +13,6 @@ export function UsersListPage() {
   const navigate = useNavigate()
   const [searchInput, setSearchInput] = useState('')
   const search = useDebounce(searchInput, 350)
-  const [showCreateModal, setShowCreateModal] = useState(false)
   const [userToDelete, setUserToDelete] = useState<User | null>(null)
   const { mutate: toggleStatus } = useToggleUserStatus()
 
@@ -26,7 +24,7 @@ export function UsersListPage() {
   )
   const handleToggleStatus = useCallback(
     (user: User) => {
-      toggleStatus({ id: user.id, activate: !user.isActive })
+      toggleStatus({ id: user.id, actif: !user.isActive })
     },
     [toggleStatus],
   )
@@ -40,7 +38,9 @@ export function UsersListPage() {
           <Can permission="user.create">
             <button
               type="button"
-              onClick={() => { navigate('/users/new') }}
+              onClick={() => {
+                navigate('/users/new')
+              }}
               className="flex items-center gap-2 rounded-[var(--radius)] bg-[hsl(var(--primary))] px-4 py-2 text-sm font-medium text-[hsl(var(--primary-foreground))] transition-opacity hover:opacity-90"
             >
               <UserPlus size={16} aria-hidden="true" />
@@ -59,7 +59,9 @@ export function UsersListPage() {
           type="search"
           placeholder="Rechercher un utilisateur..."
           value={searchInput}
-          onChange={(e) => { setSearchInput(e.target.value); }}
+          onChange={(e) => {
+            setSearchInput(e.target.value)
+          }}
           className="w-full rounded-[var(--radius)] border border-[hsl(var(--input))] bg-[hsl(var(--card))] py-2 pr-3 pl-9 text-sm focus:ring-2 focus:ring-[hsl(var(--ring))] focus:ring-offset-1 focus:outline-none"
           aria-label="Rechercher"
         />
@@ -67,13 +69,19 @@ export function UsersListPage() {
       <UsersTable
         search={search}
         onEdit={() => void 0}
-        onDelete={(user) => { setUserToDelete(user); }}
+        onDelete={(user) => {
+          setUserToDelete(user)
+        }}
         onToggleStatus={handleToggleStatus}
         onViewDetail={handleViewDetail}
       />
-      {showCreateModal && <CreateUserModal onClose={() => { setShowCreateModal(false); }} />}
       {userToDelete !== null && (
-        <DeleteUserDialog user={userToDelete} onClose={() => { setUserToDelete(null); }} />
+        <DeleteUserDialog
+          user={userToDelete}
+          onClose={() => {
+            setUserToDelete(null)
+          }}
+        />
       )}
     </div>
   )

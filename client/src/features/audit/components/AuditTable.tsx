@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react'
-import { ClipboardList } from 'lucide-react'
+import { useState, useMemo, useEffect } from 'react'
+import { ClipboardList, ChevronLeft, ChevronRight } from 'lucide-react' // Remplacement par des icônes plus pro
 import { AuditActionBadge } from './AuditActionBadge'
 import { AuditDetailDrawer } from './AuditDetailDrawer'
 import { useAuditLogs } from '../hooks'
@@ -19,6 +19,11 @@ export function AuditTable({ filters }: AuditTableProps) {
   const [page, setPage] = useState(1)
   const [limit, setLimit] = useState(10)
   const [selectedLogId, setSelectedLogId] = useState<string | null>(null)
+
+  // CRITIQUE : Réinitialiser la page à 1 dès que les filtres changent
+  useEffect(() => {
+    setPage(1)
+  }, [filters])
 
   const params = useMemo(() => ({ page, limit, ...filters }), [page, limit, filters])
   const { data, isLoading } = useAuditLogs(params)
@@ -46,7 +51,7 @@ export function AuditTable({ filters }: AuditTableProps) {
   }
 
   /* ---- Empty ---- */
-  if (data?.items.length === 0) {
+  if (!data || data.items.length === 0) {
     return (
       <div className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))]">
         <EmptyState
@@ -58,12 +63,15 @@ export function AuditTable({ filters }: AuditTableProps) {
     )
   }
 
-  const total = data?.total ?? 0
-  const totalPages = data?.totalPages ?? 1
+  const total = data.total ?? 0
+  const totalPages = data.totalPages ?? 1
+
+  const from = total === 0 ? 0 : (page - 1) * limit + 1
+  const to = Math.min(page * limit, total)
 
   return (
-    <div className="space-y-3">
-      <div className="overflow-hidden rounded-lg border border-[hsl(var(--border))]">
+    <div className="space-y-4">
+      <div className="overflow-hidden rounded-lg border border-[hsl(var(--border))] shadow-sm">
         <table className="w-full text-sm" aria-label="Journal d'audit">
           <thead className="bg-[hsl(var(--muted))]">
             <tr>
@@ -78,10 +86,12 @@ export function AuditTable({ filters }: AuditTableProps) {
             </tr>
           </thead>
           <tbody className="divide-y divide-[hsl(var(--border))] bg-[hsl(var(--card))]">
-            {data?.items.map((log) => (
+            {data.items.map((log) => (
               <tr
                 key={log.id}
-                onClick={() => { setSelectedLogId(log.id); }}
+                onClick={() => {
+                  setSelectedLogId(log.id)
+                }}
                 className="cursor-pointer transition-colors hover:bg-[hsl(var(--muted))]/50"
               >
                 <td className="px-4 py-3">
@@ -108,7 +118,7 @@ export function AuditTable({ filters }: AuditTableProps) {
                 <td className="px-4 py-3 text-sm text-[hsl(var(--muted-foreground))]">
                   {formatDateTime(log.createdAt)}
                 </td>
-                <td className="px-4 py-3 font-mono text-sm text-[hsl(var(--muted-foreground))]">
+                <td className="px-4 py-3 font-mono text-xs text-[hsl(var(--muted-foreground))]">
                   {log.ipAddress}
                 </td>
               </tr>
@@ -117,54 +127,70 @@ export function AuditTable({ filters }: AuditTableProps) {
         </table>
       </div>
 
-      {/* Pagination */}
+      {/* Barre de Pagination Synchro */}
       {total > 0 && (
-        <div className="flex items-center justify-between text-sm">
-          <p className="text-[hsl(var(--muted-foreground))]">
-            {total} événement{total > 1 ? 's' : ''}
+        <div className="flex flex-col items-center justify-between gap-4 border-t border-[hsl(var(--border))] pt-3 text-sm sm:flex-row">
+          <p className="font-medium text-[hsl(var(--muted-foreground))]">
+            {from} à {to} sur {total} événement{total > 1 ? 's' : ''}
           </p>
-          <div className="flex items-center gap-3">
-            {/* Boutons de taille de page */}
-            <div className="flex items-center gap-1">
-              {PAGE_SIZES.map((size) => (
-                <button
-                  key={size}
-                  type="button"
-                  onClick={() => {
-                    setLimit(size)
-                    setPage(1) // réinitialiser la page lors du changement de taille
-                  }}
-                  className={cn(
-                    'rounded-[var(--radius-sm)] border border-[hsl(var(--border))] px-2 py-1 text-xs transition-colors hover:bg-[hsl(var(--muted))]',
-                    limit === size &&
-                      'bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))]',
-                  )}
-                >
-                  {size}
-                </button>
-              ))}
+
+          {/* Section Droite : Contrôles */}
+          <div className="flex flex-wrap items-center gap-6">
+            {/* Sélecteur de taille (Lignes par page) */}
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-medium text-[hsl(var(--muted-foreground))]">
+                Lignes par page :
+              </span>
+              <div className="flex items-center gap-1">
+                {PAGE_SIZES.map((size) => (
+                  <button
+                    key={size}
+                    type="button"
+                    onClick={() => {
+                      setLimit(size)
+                      setPage(1)
+                    }}
+                    className={cn(
+                      'h-7 min-w-[28px] rounded-[var(--radius-sm)] border border-[hsl(var(--border))] px-1.5 text-xs font-medium transition-colors hover:bg-[hsl(var(--muted))]',
+                      limit === size
+                        ? 'border-[hsl(var(--primary))] bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))]'
+                        : 'bg-[hsl(var(--card))] text-[hsl(var(--foreground))]',
+                    )}
+                  >
+                    {size}
+                  </button>
+                ))}
+              </div>
             </div>
 
-            {/* Boutons de navigation */}
-            <div className="flex items-center gap-1">
+            {/* Navigation des pages */}
+            <div className="flex items-center gap-2">
               <button
                 type="button"
                 disabled={page <= 1}
-                onClick={() => { setPage((p) => p - 1); }}
-                className="rounded-[var(--radius-sm)] border border-[hsl(var(--border))] px-2 py-1 text-xs transition-colors hover:bg-[hsl(var(--muted))] disabled:cursor-not-allowed disabled:opacity-40"
+                onClick={() => {
+                  setPage((p) => p - 1)
+                }}
+                className="flex h-7 w-7 items-center justify-center rounded-[var(--radius-sm)] border border-[hsl(var(--border))] bg-[hsl(var(--card))] transition-colors hover:bg-[hsl(var(--muted))] disabled:cursor-not-allowed disabled:opacity-40"
+                aria-label="Page précédente"
               >
-                Précédent
+                <ChevronLeft className="h-4 w-4" />
               </button>
-              <span className="px-2 text-[hsl(var(--muted-foreground))]">
-                Page {page} / {totalPages}
+
+              <span className="px-1 text-xs font-medium text-[hsl(var(--muted-foreground))]">
+                {page} / {totalPages}
               </span>
+
               <button
                 type="button"
                 disabled={page >= totalPages}
-                onClick={() => { setPage((p) => p + 1); }}
-                className="rounded-[var(--radius-sm)] border border-[hsl(var(--border))] px-2 py-1 text-xs transition-colors hover:bg-[hsl(var(--muted))] disabled:cursor-not-allowed disabled:opacity-40"
+                onClick={() => {
+                  setPage((p) => p + 1)
+                }}
+                className="flex h-7 w-7 items-center justify-center rounded-[var(--radius-sm)] border border-[hsl(var(--border))] bg-[hsl(var(--card))] transition-colors hover:bg-[hsl(var(--muted))] disabled:cursor-not-allowed disabled:opacity-40"
+                aria-label="Page suivante"
               >
-                Suivant
+                <ChevronRight className="h-4 w-4" />
               </button>
             </div>
           </div>
@@ -172,7 +198,12 @@ export function AuditTable({ filters }: AuditTableProps) {
       )}
 
       {selectedLog !== null && (
-        <AuditDetailDrawer log={selectedLog} onClose={() => { setSelectedLogId(null); }} />
+        <AuditDetailDrawer
+          log={selectedLog}
+          onClose={() => {
+            setSelectedLogId(null)
+          }}
+        />
       )}
     </div>
   )

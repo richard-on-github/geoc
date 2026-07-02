@@ -25,11 +25,11 @@ export function DashboardPage() {
     <div>
       <PageHeader
         title="Tableau de bord"
-        description={user !== null ? `Bienvenue, ${user.firstName}.` : undefined}
+        description={user !== null ? `Bienvenue, ${user.prenom}.` : undefined}
       />
 
       {/* Grille KPI — extensible, alimentée par les futurs modules métiers */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6">
+      <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {kpiPlaceholders.map((kpi) => (
           <KpiCard key={kpi.id} data={kpi} />
         ))}
@@ -39,15 +39,15 @@ export function DashboardPage() {
       <div className="grid gap-4 lg:grid-cols-3">
         <DashboardWidgetCard title="Activité récente" span={2}>
           <p className="text-sm text-[hsl(var(--muted-foreground))]">
-            Ce widget affichera l'activité récente issue du journal d'audit une fois
-            le module connecté aux données réelles.
+            Ce widget affichera l'activité récente issue du journal d'audit une fois le module
+            connecté aux données réelles.
           </p>
         </DashboardWidgetCard>
 
         <DashboardWidgetCard title="Accès rapides" span={1}>
           <p className="text-sm text-[hsl(var(--muted-foreground))]">
-            Emplacement réservé pour des raccourcis contextuels selon le rôle
-            de l'utilisateur connecté.
+            Emplacement réservé pour des raccourcis contextuels selon le rôle de l'utilisateur
+            connecté.
           </p>
         </DashboardWidgetCard>
       </div>

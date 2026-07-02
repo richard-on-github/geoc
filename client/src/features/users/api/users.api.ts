@@ -1,16 +1,18 @@
 import { axiosInstance } from '@/shared/api'
 import type { ApiResponse, ApiPaginatedResponse, ListParams } from '@/shared/types'
-import type {
-  User,
-  CreateUserPayload,
-  UpdateUserPayload,
-  UpdateUserPermissionsPayload,
-} from '../types'
+import type { User, CreateUserPayload, UpdateUserPayload } from '../types'
 
-// Mapping d'un utilisateur brut vers le type User attendu
 function mapUser(raw: any): User {
+  const cleanPermissions = (raw.permissions ?? []).map((p: any) =>
+    p.permission ? p.permission : p,
+  )
+
   return {
     id: raw.id,
+    prenom: raw.prenom,
+    nom: raw.nom,
+    telephone: raw.telephone ?? null,
+
     fullName: `${raw.prenom} ${raw.nom}`.trim(),
     email: raw.email,
     phoneNumber: raw.telephone ?? undefined,
@@ -18,14 +20,16 @@ function mapUser(raw: any): User {
     mustChangePassword: raw.mustChangePassword,
     role: {
       id: raw.role.id,
-      name: raw.role.code, // ou raw.role.nom selon votre besoin
+      name: raw.role.code,
       displayName: raw.role.nom,
     },
-    agencyName: raw.agence?.nom ?? null, // si l'API renvoie une agence
+    agencyName: raw.agence?.nom ?? null,
     createdAt: raw.createdAt,
     updatedAt: raw.updatedAt,
     lastLoginAt: raw.lastLoginAt ?? null,
-    permissions: raw.permissions ?? [],
+
+    // On utilise le tableau nettoyé et standardisé
+    permissions: cleanPermissions,
   }
 }
 
@@ -48,7 +52,6 @@ export const usersApi = {
 
     const { users, pagination } = response.data.data
 
-    // Mapping et retour
     return {
       items: users.map(mapUser),
       total: pagination.total,
@@ -63,7 +66,6 @@ export const usersApi = {
     return mapUser(response.data.data)
   },
 
-  // Les autres méthodes doivent aussi mapper la réponse si elles retournent un User
   async createUser(payload: CreateUserPayload): Promise<User> {
     const response = await axiosInstance.post<ApiResponse<any>>('/users', payload)
     return mapUser(response.data.data)
@@ -78,9 +80,9 @@ export const usersApi = {
     await axiosInstance.delete(`/users/${id}`)
   },
 
-  async toggleUserStatus(id: string, activate: boolean): Promise<User> {
+  async toggleUserStatus(id: string, actif: boolean): Promise<User> {
     const response = await axiosInstance.patch<ApiResponse<any>>(`/users/${id}/status`, {
-      activate,
+      actif,
     })
     return mapUser(response.data.data)
   },

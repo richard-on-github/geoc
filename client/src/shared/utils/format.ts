@@ -51,16 +51,19 @@ export function capitalize(str: string): string {
  * Génère les initiales d'un nom complet (max 2 caractères).
  */
 export const getInitials = (name?: string): string => {
-  // Si le nom est absent ou n'est pas une chaîne, on renvoie une valeur par défaut
   if (!name || typeof name !== 'string') return '??'
 
-  return name
-    .split(' ')
-    .filter((n) => n.length > 0)
-    .map((n) => n[0])
-    .slice(0, 2)
-    .join('')
-    .toUpperCase()
+  // On nettoie les espaces et on récupère tous les mots sous forme de tableau
+  const words = name.trim().split(/\s+/)
+
+  if (words.length === 0) return '??'
+  if (words.length === 1) return words[0][0].toUpperCase()
+
+  // On prend la première lettre du premier mot et du dernier mot
+  const firstInitial = words[0][0]
+  const lastInitial = words[words.length - 1][0]
+
+  return (firstInitial + lastInitial).toUpperCase()
 }
 
 /**

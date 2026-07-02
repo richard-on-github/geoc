@@ -6,7 +6,7 @@ import { useAuthStore } from './useAuthStore'
 import { AUTH_ROUTES } from '../constants'
 import type { LoginPayload } from '../types'
 import { ApiError } from '@/shared/types'
-import { tokenStorage } from '@/shared/api/axios-instance' // 👈 AJOUT : Ajuste le chemin vers ton fichier axiosInstance
+import { tokenStorage } from '@/shared/api/axios-instance'
 
 export function useLogin() {
   const navigate = useNavigate()
@@ -14,33 +14,24 @@ export function useLogin() {
 
   return useMutation({
     mutationFn: async (payload: LoginPayload) => {
-      // 1. Login
       const response = await authApi.login(payload)
-      const tokensData = response.data || response;
+      const tokensData = response.data || response
 
       if (!tokensData?.accessToken) {
-        throw new Error("Format de réponse login invalide");
+        throw new Error('Format de réponse login invalide')
       }
 
       tokenStorage.setTokens(tokensData.accessToken, tokensData.refreshToken)
 
-      // 2. Me
       try {
         const meResponse = await authApi.getMe(tokensData.accessToken)
 
-        // DEBUG: On log l'objet entier pour voir où se cachent les données
-        console.log("DEBUG: Réponse complète de getMe =", meResponse);
+        const userData = meResponse.data || meResponse
 
-        // Tentative d'extraction plus large
-        const userData = meResponse.data || meResponse;
-
-        // Si userData contient une propriété 'data', on plonge dedans, sinon on garde userData
-        const finalUser = userData.data || userData;
-
-        console.log("DEBUG: Utilisateur final extrait =", finalUser);
+        const finalUser = userData.data || userData
 
         if (!finalUser || (!finalUser.id && !finalUser._id)) {
-          throw new Error("Format de réponse /auth/me invalide : utilisateur introuvable");
+          throw new Error('Format de réponse /auth/me invalide : utilisateur introuvable')
         }
 
         return { user: finalUser, tokens: tokensData }
@@ -57,14 +48,32 @@ export function useLogin() {
     },
 
     onError: (error) => {
-      if (error instanceof Error) {
-        console.error("DEBUG: Erreur capturée =", error.message);
-        toast.error(error.message);
-      } else if (error instanceof ApiError) {
+      console.error('DEBUG LOGIN ERROR:', error)
+
+      // 2. ON VERIFIE EN PREMIER "ApiError" (plus spécifique)
+      if (error instanceof ApiError) {
         toast.error(error.message)
-      } else {
-        toast.error('Une erreur inattendue est survenue.')
+        return
       }
+
+      // 3. ON VERIFIE SI C'EST UNE ERREUR AXIOS BRUTE (si pas interceptée globalement)
+      if (typeof error === 'object' && error !== null && 'isAxiosError' in error) {
+        const axiosError = error as any
+        const backendMessage =
+          axiosError.response?.data?.message ||
+          axiosError.response?.data?.error ||
+          'Identifiants invalides ou compte bloqué.'
+
+        toast.error(backendMessage)
+        return
+      }
+
+      if (error instanceof Error) {
+        toast.error(error.message)
+        return
+      }
+
+      toast.error('Une erreur inattendue est survenue.')
     },
   })
 }

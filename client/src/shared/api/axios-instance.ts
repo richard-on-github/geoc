@@ -3,9 +3,6 @@ import { env } from '@/app/config'
 import { ApiError } from '@/shared/types'
 import { AUTH_STORAGE_KEYS } from '@/features/auth/constants'
 
-/* ============================================================
-   Instance Axios principale
-   ============================================================ */
 export const axiosInstance = axios.create({
   baseURL: env.apiBaseUrl,
   timeout: env.apiTimeout,
@@ -15,10 +12,6 @@ export const axiosInstance = axios.create({
   },
   withCredentials: false,
 })
-
-/* ============================================================
-   File d'attente des requêtes en attente du refresh
-   ============================================================ */
 
 interface PendingRequest {
   resolve: (token: string) => void
@@ -38,12 +31,6 @@ function processPendingQueue(error: unknown, token: string | null): void {
   })
   pendingQueue = []
 }
-
-/* ============================================================
-   Token storage helpers
-   Encapsulés ici pour que les interceptors n'aient pas à
-   importer le store Zustand (évite les dépendances circulaires).
-   ============================================================ */
 
 export const tokenStorage = {
   getAccessToken(): string | null {
@@ -66,10 +53,6 @@ export const tokenStorage = {
   },
 }
 
-/* ============================================================
-   Interceptor REQUEST — injection du token
-   ============================================================ */
-
 axiosInstance.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     const token = tokenStorage.getAccessToken()
@@ -81,10 +64,6 @@ axiosInstance.interceptors.request.use(
   (error: unknown) => Promise.reject(error),
 )
 
-/* ============================================================
-   Interceptor RESPONSE — refresh automatique sur 401
-   ============================================================ */
-
 axiosInstance.interceptors.response.use(
   (response: AxiosResponse) => response,
   async (error: AxiosError) => {
@@ -94,19 +73,20 @@ axiosInstance.interceptors.response.use(
 
     const status = error.response?.status
 
-    /* Pas un 401, ou déjà retenté : on propage */
+    if (originalRequest.url?.includes('/auth/login') === true) {
+      return Promise.reject(buildApiError(error))
+    }
+
     if (status !== 401 || originalRequest._retry === true) {
       return Promise.reject(buildApiError(error))
     }
 
-    /* URL de refresh elle-même en 401 → session expirée, déconnexion forcée */
     if (originalRequest.url?.includes('/auth/refresh-token') === true) {
       tokenStorage.clearAll()
       window.location.href = '/login'
       return Promise.reject(buildApiError(error))
     }
 
-    /* Refresh déjà en cours → mise en file d'attente */
     if (isRefreshing) {
       return new Promise<AxiosResponse>((resolve, reject) => {
         pendingQueue.push({

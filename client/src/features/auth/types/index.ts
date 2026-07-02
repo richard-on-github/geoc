@@ -8,13 +8,13 @@
 export interface AuthUser {
   id: string
   email: string
-  firstName: string
-  lastName: string
+  prenom: string
+  nom: string
   fullName: string
   avatar: string | null
   isActive: boolean
   role: UserRole
-  permissions: string[]   // codes de permission ex: "user.create"
+  permissions: string[] // codes de permission ex: "user.create"
   agencyId: string | null
   lastLoginAt: string | null
   createdAt: string

@@ -5,5 +5,4 @@ export {
   useUpdateUser,
   useDeleteUser,
   useToggleUserStatus,
-  useUpdateUserPermissions,
 } from './useUsers'

@@ -4,7 +4,7 @@ import { usersApi } from '../api'
 import { USER_QUERY_KEYS } from '../constants'
 import { ApiError } from '@/shared/types'
 import type { ListParams } from '@/shared/types'
-import type { CreateUserPayload, UpdateUserPayload, UpdateUserPermissionsPayload } from '../types'
+import type { CreateUserPayload, UpdateUserPayload } from '../types'
 
 /* ---- Lecture ---- */
 
@@ -12,7 +12,7 @@ export function useUsers(params: ListParams) {
   return useQuery({
     queryKey: USER_QUERY_KEYS.list(params),
     queryFn: () => usersApi.getUsers(params),
-    placeholderData: (prev) => prev,   // garde les données précédentes pendant la pagination
+    placeholderData: (prev) => prev, // garde les données précédentes pendant la pagination
   })
 }
 
@@ -40,12 +40,16 @@ export function useCreateUser() {
   })
 }
 
-export function useUpdateUser(id: string) {
+export function useUpdateUser() {
   const qc = useQueryClient()
+
   return useMutation({
-    mutationFn: (payload: UpdateUserPayload) => usersApi.updateUser(id, payload),
-    onSuccess: (updated) => {
-      qc.setQueryData(USER_QUERY_KEYS.detail(id), updated)
+    mutationFn: ({ id, payload }: { id: string; payload: UpdateUserPayload }) =>
+      usersApi.updateUser(id, payload),
+
+    // TanStack Query donne accès aux variables envoyées en 2ème argument d'onSuccess
+    onSuccess: (updated, variables) => {
+      qc.setQueryData(USER_QUERY_KEYS.detail(variables.id), updated)
       void qc.invalidateQueries({ queryKey: USER_QUERY_KEYS.lists() })
       toast.success('Utilisateur modifié.')
     },
@@ -71,31 +75,21 @@ export function useDeleteUser() {
 
 export function useToggleUserStatus() {
   const qc = useQueryClient()
+
   return useMutation({
-    mutationFn: ({ id, activate }: { id: string; activate: boolean }) =>
-      activate ? usersApi.activateUser(id) : usersApi.deactivateUser(id),
+    mutationFn: ({ id, actif }: { id: string; actif: boolean }) =>
+      usersApi.toggleUserStatus(id, actif),
+
     onSuccess: (updated) => {
       qc.setQueryData(USER_QUERY_KEYS.detail(updated.id), updated)
       void qc.invalidateQueries({ queryKey: USER_QUERY_KEYS.lists() })
+
       toast.success(updated.isActive ? 'Compte activé.' : 'Compte désactivé.')
     },
     onError: (error) => {
-      toast.error(error instanceof ApiError ? error.message : 'Erreur lors du changement de statut.')
-    },
-  })
-}
-
-export function useUpdateUserPermissions(userId: string) {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: (payload: UpdateUserPermissionsPayload) =>
-      usersApi.updateUserPermissions(userId, payload),
-    onSuccess: (updated) => {
-      qc.setQueryData(USER_QUERY_KEYS.detail(userId), updated)
-      toast.success('Permissions mises à jour.')
-    },
-    onError: (error) => {
-      toast.error(error instanceof ApiError ? error.message : 'Erreur lors de la mise à jour.')
+      toast.error(
+        error instanceof ApiError ? error.message : 'Erreur lors du changement de statut.',
+      )
     },
   })
 }
