@@ -5,4 +5,5 @@ export {
   capitalize,
   getInitials,
   truncate,
+  formatCurrency,
 } from './format'

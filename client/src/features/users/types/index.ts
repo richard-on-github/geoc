@@ -1,5 +1,9 @@
-
 export type UserStatus = 'active' | 'inactive'
+
+export interface Permission {
+  id: string
+  nom: string
+}
 
 export interface User {
   id: string
@@ -18,13 +22,21 @@ export interface User {
   lastLoginAt: string | null
   createdAt: string
   updatedAt: string
+  agenceId: string | null
+  agence: {
+    id: string
+    nom: string
+    code: string
+  } | null
 
-  /**
-   * Liste des codes de permissions (ex: ["user.read", "operation.create"])
-   * Agrégée par le backend (Permissions du Rôle + Surcharges utilisateur)
-   */
-  permissions: string[]
+  permissions: Permission[]
+
+  fullName: string
+  phoneNumber?: string
+  isActive: boolean
+  agencyName: string | null
 }
+
 export interface CreateUserPayload {
   prenom: string
   nom: string
@@ -33,12 +45,9 @@ export interface CreateUserPayload {
   roleId: string
   password?: string
   permissionIds?: string[]
+  agenceId?: string | null
 }
 
-/**
- * Payload de modification d'un utilisateur
- * Aligné sur `updateUserSchema` (Note: 'actif' n'est pas dedans)
- */
 export interface UpdateUserPayload {
   prenom?: string
   nom?: string
@@ -47,20 +56,13 @@ export interface UpdateUserPayload {
   roleId?: string
   mustChangePassword?: boolean
   permissionIds?: string[]
+  agenceId?: string | null
 }
 
-/**
- * Payload dédié au changement de statut (Actif/Inactif)
- * Aligné sur `updateUserStatusSchema`
- */
 export interface UpdateUserStatusPayload {
   actif: boolean
 }
 
-/**
- * Critères de recherche et pagination pour les requêtes (Query Params)
- * Aligné sur les transformations de `userQuerySchema`
- */
 export interface UserQueryParams {
   page?: number
   limit?: number

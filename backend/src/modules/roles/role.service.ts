@@ -1,6 +1,5 @@
 import { roleRepository } from "./role.repository.js";
 import { ApiError } from "../../utils/ApiError.js";
-import { HTTP_STATUS } from "../../constants/http-status.js";
 import { MESSAGES } from "../../constants/messages.js";
 import { logAudit } from "../../utils/audit.js";
 import { AuditAction } from "@prisma/client";
@@ -8,6 +7,7 @@ import type {
   CreateRoleInput,
   UpdateRoleInput,
   RoleQueryParams,
+  RoleAllQueryParams,
 } from "./role.interface.js";
 import { getPaginationMeta } from "../../utils/pagination.js";
 
@@ -16,6 +16,10 @@ export const roleService = {
     const { roles, total, page, limit } = await roleRepository.findAll(params);
     const pagination = getPaginationMeta(total, page, limit);
     return { roles, pagination };
+  },
+
+  async getAllWithoutPagination(params: RoleAllQueryParams) {
+    return roleRepository.findAllWithoutPagination(params);
   },
 
   async getById(id: string) {
@@ -28,7 +32,18 @@ export const roleService = {
     return role;
   },
 
-  async create(input: CreateRoleInput, actorId: string, ip?: string) {
+  async create(
+    input: CreateRoleInput,
+    actor: { id: string; agenceId?: string | null; niveau: number },
+    ip?: string,
+  ) {
+    // 1. Empêcher l'escalade de privilège
+    if (input.niveau >= actor.niveau) {
+      throw ApiError.forbidden(
+        "Vous ne pouvez pas créer un rôle de niveau égal ou supérieur au vôtre.",
+      );
+    }
+
     const existingRole = await roleRepository.findByCode(input.code);
     if (existingRole) {
       throw ApiError.conflict(
@@ -42,10 +57,11 @@ export const roleService = {
       action: AuditAction.CREATION,
       entity: "Role",
       entityId: role.id,
-      userId: actorId,
+      userId: actor.id,
       ip: ip ?? "",
       message: `Création du rôle ${role.code}`,
       after: role as any,
+      agenceId: actor.agenceId || undefined,
     });
 
     return role;
@@ -54,7 +70,7 @@ export const roleService = {
   async update(
     id: string,
     input: UpdateRoleInput,
-    actorId: string,
+    actor: { id: string; agenceId?: string | null; niveau: number },
     ip?: string,
   ) {
     const role = await roleRepository.findById(id);
@@ -65,9 +81,33 @@ export const roleService = {
     }
 
     if (role.isSystem) {
-      if (input.actif === false) {
-        throw ApiError.badRequest("Impossible de désactiver un rôle système");
+      if (
+        (input.code && input.code !== role.code) ||
+        (input.dataScope && input.dataScope !== role.dataScope) ||
+        (input.niveau !== undefined && input.niveau !== role.niveau)
+      ) {
+        throw ApiError.forbidden(
+          "Impossible de modifier le code, le périmètre ou le niveau d'un rôle système natif.",
+        );
       }
+    }
+
+    if (role.code === "SYSTEM") {
+      throw ApiError.forbidden(
+        "Le rôle système natif ne peut pas être modifié.",
+      );
+    }
+
+    if (role.niveau >= actor.niveau) {
+      throw ApiError.forbidden(
+        "Vous ne pouvez pas modifier un rôle de niveau égal ou supérieur au vôtre.",
+      );
+    }
+
+    if (input.niveau !== undefined && input.niveau >= actor.niveau) {
+      throw ApiError.forbidden(
+        "Vous ne pouvez pas élever un rôle à un niveau égal ou supérieur au vôtre.",
+      );
     }
 
     if (input.code && input.code !== role.code) {
@@ -86,17 +126,22 @@ export const roleService = {
       action: AuditAction.MODIFICATION,
       entity: "Role",
       entityId: id,
-      userId: actorId,
+      userId: actor.id,
       ip: ip ?? "",
       message: `Modification du rôle ${role.code}`,
       before: before as any,
       after: updatedRole as any,
+      agenceId: actor.agenceId || undefined,
     });
 
     return updatedRole;
   },
 
-  async delete(id: string, actorId: string, ip?: string) {
+  async delete(
+    id: string,
+    actor: { id: string; agenceId?: string | null; niveau: number },
+    ip?: string,
+  ) {
     const role = await roleRepository.findById(id);
     if (!role) {
       throw ApiError.notFound(
@@ -104,8 +149,16 @@ export const roleService = {
       );
     }
 
+    // 1. INTERDICTION DE SUPPRIMER UN RÔLE SYSTÈME
     if (role.isSystem) {
-      throw ApiError.badRequest("Impossible de supprimer un rôle système");
+      throw ApiError.forbidden("Impossible de supprimer un rôle système.");
+    }
+
+    // 2. Empêcher de supprimer un rôle de niveau >= au nôtre
+    if (role.niveau >= actor.niveau) {
+      throw ApiError.forbidden(
+        "Vous ne pouvez pas supprimer un rôle de niveau égal ou supérieur au vôtre.",
+      );
     }
 
     await roleRepository.delete(id);
@@ -114,10 +167,11 @@ export const roleService = {
       action: AuditAction.SUPPRESSION,
       entity: "Role",
       entityId: id,
-      userId: actorId,
+      userId: actor.id,
       ip: ip ?? "",
       message: `Suppression du rôle ${role.code}`,
       before: role as any,
+      agenceId: actor.agenceId || undefined,
     });
   },
 };

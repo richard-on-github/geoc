@@ -6,9 +6,9 @@ import { createUserSchema, type CreateUserFormValues } from '../schemas'
 import { useCreateUser } from '../hooks'
 import { RoleSelect } from '@/shared/components/forms/RoleSelect'
 import { PermissionsSelector } from '@/shared/components/forms/PermissionsSelector'
+import { AgenceSelect } from '@/shared/components/forms/AgenceSelect' // nouvel import
 import { Field } from '@/shared/components/forms/Field'
 
-// Classe CSS commune pour les champs de formulaire
 const inputClass =
   'w-full rounded-[var(--radius)] border border-[hsl(var(--input))] bg-[hsl(var(--background))] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[hsl(var(--ring))] focus:ring-offset-1 disabled:opacity-50 aria-invalid:border-[hsl(var(--destructive))]'
 
@@ -25,6 +25,7 @@ export function CreateUserPage() {
     resolver: zodResolver(createUserSchema),
     defaultValues: {
       permissionIds: [],
+      agenceId: null, // valeur par défaut
     },
   })
 
@@ -102,6 +103,16 @@ export function CreateUserPage() {
               aria-invalid={!!errors.roleId}
               disabled={isPending}
               {...register('roleId')}
+            />
+          </Field>
+          {/* Nouveau champ Agence */}
+          <Field id="agenceId" label="Agence" error={errors.agenceId?.message}>
+            <AgenceSelect
+              id="agenceId"
+              className={inputClass}
+              aria-invalid={!!errors.agenceId}
+              disabled={isPending}
+              {...register('agenceId')}
             />
           </Field>
           <Field id="password" label="Mot de passe temporaire" error={errors.password?.message}>

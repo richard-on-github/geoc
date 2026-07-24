@@ -8,6 +8,7 @@ interface SampleUserInput {
   nom: string;
   email: string;
   roleCode: string;
+  agenceTarget?: "principale" | "nord";
 }
 
 async function hashPassword(password: string): Promise<string> {
@@ -15,47 +16,120 @@ async function hashPassword(password: string): Promise<string> {
 }
 
 export async function seedUsers(prisma: PrismaClient): Promise<void> {
-  console.log("Début du seeding des utilisateurs...");
+  console.log("Début du seeding des agences et utilisateurs...");
 
-  // 1. Récupération de tous les rôles pour lier l'ID via le code système
   const roles = await prisma.role.findMany();
-  const roleMap = new Map<string, string>(roles.map((r) => [r.code, r.id]));
 
-  const adminRoleId = roleMap.get("ADMIN");
-  if (!adminRoleId) {
-    throw new Error(
-      "Le rôle système 'ADMIN' est introuvable. Veuillez exécuter le seed des rôles d'abord.",
-    );
-  }
+  const roleMap = new Map(roles.map((role) => [role.code, role.id]));
 
-  // 2. Vérifier et créer l'administrateur par défaut
-  const existingAdmin = await prisma.user.findUnique({
-    where: { email: "admin@example.com" },
+  const getRoleId = (code: string) => {
+    const id = roleMap.get(code);
+
+    if (!id) {
+      throw new Error(`Le rôle ${code} est introuvable`);
+    }
+
+    return id;
+  };
+
+  let agencePrincipale = await prisma.agence.findFirst({
+    where: {
+      nom: "Agence Principale",
+    },
   });
 
-  if (!existingAdmin) {
-    console.log("  ↳ Création de l'utilisateur administrateur par défaut...");
-    const passwordHash = await hashPassword("Password123!");
+  if (!agencePrincipale) {
+    agencePrincipale = await prisma.agence.create({
+      data: {
+        nom: "Agence Principale",
+        code: "MAIN",
+      },
+    });
+
+    console.log("✓ Agence Principale créée");
+  }
+
+  let agenceNord = await prisma.agence.findFirst({
+    where: {
+      nom: "Agence Nord",
+    },
+  });
+
+  if (!agenceNord) {
+    agenceNord = await prisma.agence.create({
+      data: {
+        nom: "Agence Nord",
+        code: "NORD",
+      },
+    });
+
+    console.log("✓ Agence Nord créée");
+  }
+
+  const systemExists = await prisma.user.findUnique({
+    where: {
+      email: "system@geoc.com",
+    },
+  });
+
+  if (!systemExists) {
+    await prisma.user.create({
+      data: {
+        prenom: "Email",
+
+        nom: "Import Bot",
+
+        email: "system@geoc.com",
+
+        telephone: null,
+
+        passwordHash: await hashPassword(crypto.randomUUID()),
+
+        roleId: getRoleId("SYSTEM"),
+
+        actif: true,
+
+        mustChangePassword: false,
+
+        agenceId: null,
+      },
+    });
+
+    console.log("✓ Utilisateur SYSTEM créé");
+  }
+
+  const adminExists = await prisma.user.findUnique({
+    where: {
+      email: "admin@example.com",
+    },
+  });
+
+  if (!adminExists) {
     await prisma.user.create({
       data: {
         prenom: "Admin",
+
         nom: "System",
+
         email: "admin@example.com",
+
         telephone: "+22890000000",
-        passwordHash,
-        roleId: adminRoleId,
-        mustChangePassword: false,
+
+        passwordHash: await hashPassword("Password123!"),
+
+        roleId: getRoleId("ADMIN"),
+
         actif: true,
+
+        mustChangePassword: false,
+
+        agenceId: null,
       },
     });
-    console.log(
-      "    ✓ Utilisateur Admin créé (admin@example.com / Password123!)",
-    );
-  } else {
-    console.log("  ↳ L'utilisateur Admin existe déjà, étape ignorée.");
+
+    console.log("✓ Administrateur créé");
   }
 
-  // 3. Créer les utilisateurs de test pour chaque rôle applicatif
   const sampleUsers: SampleUserInput[] = [
     {
       prenom: "Direction",
@@ -63,74 +137,108 @@ export async function seedUsers(prisma: PrismaClient): Promise<void> {
       email: "direction@example.com",
       roleCode: "DIRECTION",
     },
+
     {
       prenom: "Contrôleur",
       nom: "User",
       email: "controleur@example.com",
       roleCode: "CONTROLEUR",
     },
+
     {
       prenom: "Auditeur",
       nom: "User",
       email: "auditeur@example.com",
       roleCode: "AUDITEUR",
     },
+
     {
       prenom: "Comptable",
       nom: "User",
       email: "comptable@example.com",
       roleCode: "COMPTABLE",
     },
+
     {
-      prenom: "Chef",
-      nom: "Agence",
-      email: "chefagence@example.com",
+      prenom: "Jean",
+      nom: "Chef-Principale",
+      email: "chef.principale@example.com",
       roleCode: "CHEF_AGENCE",
+      agenceTarget: "principale",
     },
+
     {
-      prenom: "Caissier",
-      nom: "User",
-      email: "caissier@example.com",
+      prenom: "Awa",
+      nom: "Caisse-Principale",
+      email: "caissier.principale@example.com",
       roleCode: "CAISSIER",
+      agenceTarget: "principale",
+    },
+
+    {
+      prenom: "Marc",
+      nom: "Chef-Nord",
+      email: "chef.nord@example.com",
+      roleCode: "CHEF_AGENCE",
+      agenceTarget: "nord",
+    },
+
+    {
+      prenom: "Koffi",
+      nom: "Caisse-Nord",
+      email: "caissier.nord@example.com",
+      roleCode: "CAISSIER",
+      agenceTarget: "nord",
     },
   ];
 
-  for (const sampleUser of sampleUsers) {
-    const targetRoleId = roleMap.get(sampleUser.roleCode);
-    if (!targetRoleId) {
-      console.warn(
-        `[ATTENTION] Rôle pour le code '${sampleUser.roleCode}' introuvable. Utilisateur ignoré.`,
-      );
+  for (const user of sampleUsers) {
+    const exists = await prisma.user.findUnique({
+      where: {
+        email: user.email,
+      },
+    });
+
+    if (exists) {
+      console.log(`↳ ${user.email} existe déjà`);
+
       continue;
     }
 
-    const exists = await prisma.user.findUnique({
-      where: { email: sampleUser.email },
+    let agenceId: null | string = null;
+
+    if (user.agenceTarget === "principale") {
+      agenceId = agencePrincipale.id;
+    }
+
+    if (user.agenceTarget === "nord") {
+      agenceId = agenceNord.id;
+    }
+
+    await prisma.user.create({
+      data: {
+        prenom: user.prenom,
+
+        nom: user.nom,
+
+        email: user.email,
+
+        telephone: null,
+
+        passwordHash: await hashPassword("Test1234!"),
+
+        roleId: getRoleId(user.roleCode),
+
+        actif: true,
+
+        mustChangePassword: true,
+
+        agenceId,
+      },
     });
 
-    if (!exists) {
-      const passwordHash = await hashPassword("Test1234!");
-      await prisma.user.create({
-        data: {
-          prenom: sampleUser.prenom,
-          nom: sampleUser.nom,
-          email: sampleUser.email,
-          telephone: null,
-          passwordHash,
-          roleId: targetRoleId,
-          mustChangePassword: true,
-          actif: true,
-        },
-      });
-      console.log(
-        `    ✓ Utilisateur ${sampleUser.roleCode} créé (${sampleUser.email} / Test1234!)`,
-      );
-    } else {
-      console.log(
-        `    ↳ L'utilisateur ${sampleUser.roleCode} existe déjà, étape ignorée.`,
-      );
-    }
+    console.log(`✓ ${user.roleCode} créé : ${user.email}`);
   }
 
-  console.log("Seeding des utilisateurs complété.");
+  console.log("Seeding utilisateurs terminé avec succès.");
 }

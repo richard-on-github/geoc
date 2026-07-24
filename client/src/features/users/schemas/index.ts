@@ -1,7 +1,7 @@
 import { z } from 'zod'
 
 export const createUserSchema = z.object({
-  email: z.string().min(1, 'L\'email est requis').email('Email invalide'),
+  email: z.string().min(1, "L'email est requis").email('Email invalide'),
   prenom: z.string().min(1, 'Le prénom est requis').max(50),
   nom: z.string().min(1, 'Le nom est requis').max(50),
   roleId: z.string().min(1, 'Le rôle est requis'),
@@ -12,15 +12,17 @@ export const createUserSchema = z.object({
     .regex(/[A-Z]/, 'Doit contenir une majuscule')
     .regex(/[0-9]/, 'Doit contenir un chiffre'),
   permissionIds: z.array(z.string().min(1)).optional().default([]),
+  agenceId: z.string().optional().nullable(),
 })
 
 export const updateUserSchema = z.object({
-  email: z.string().min(1, 'L\'email est requis').email('Email invalide'),
+  email: z.string().min(1, "L'email est requis").email('Email invalide'),
   prenom: z.string().min(1, 'Le prénom est requis').max(50),
   nom: z.string().min(1, 'Le nom est requis').max(50),
   roleId: z.string().min(1, 'Le rôle est requis'),
   telephone: z.string().optional(),
   permissionIds: z.array(z.string().min(1)).optional().default([]),
+  agenceId: z.string().optional().nullable(),
 })
 
 export type CreateUserFormValues = z.infer<typeof createUserSchema>

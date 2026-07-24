@@ -93,3 +93,18 @@ export function useToggleUserStatus() {
     },
   })
 }
+
+export function useResetPassword() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ userId, newPassword }: { userId: string; newPassword: string }) =>
+      usersApi.resetPassword(userId, newPassword),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: USER_QUERY_KEYS.lists() })
+      toast.success('Mot de passe réinitialisé avec succès.')
+    },
+    onError: (error) => {
+      toast.error(error instanceof ApiError ? error.message : 'Erreur lors de la réinitialisation.')
+    },
+  })
+}

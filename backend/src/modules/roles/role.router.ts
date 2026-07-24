@@ -8,46 +8,56 @@ import {
   createRoleSchema,
   updateRoleSchema,
   roleQuerySchema,
-  roleIdParamsSchema,
-  addRolePermissionsSchema,
-  deleteRolePermissionParamsSchema,
+  roleIdParamsSchema, roleAllQuerySchema,
 } from "./role.schema.js";
+import { ROUTES } from "../../constants/routes.js";
+import { requireGlobalAdmin } from "../../middlewares/require-global-admin.middleware.js";
 
 const router = Router();
 
 router.use(authenticate());
 
 router.get(
-  "/",
+  ROUTES.ROLES.ROOT,
   requirePermissions("role.read"),
   validate({ query: roleQuerySchema }),
   asyncHandler(roleController.findAll),
 );
 
 router.get(
-  "/:id",
+    ROUTES.ROLES.ALL,
+    requirePermissions("role.read"),
+    validate({ query: roleAllQuerySchema }),
+    asyncHandler(roleController.findAllWithoutPagination),
+);
+
+router.get(
+  ROUTES.ROLES.BY_ID,
   requirePermissions("role.read"),
   validate({ params: roleIdParamsSchema }),
   asyncHandler(roleController.findById),
 );
 
 router.post(
-  "/",
+  ROUTES.ROLES.ROOT,
   requirePermissions("role.create"),
+  requireGlobalAdmin(),
   validate({ body: createRoleSchema }),
   asyncHandler(roleController.create),
 );
 
 router.patch(
-  "/:id",
+  ROUTES.ROLES.BY_ID,
   requirePermissions("role.update"),
+  requireGlobalAdmin(),
   validate({ params: roleIdParamsSchema, body: updateRoleSchema }),
   asyncHandler(roleController.update),
 );
 
 router.delete(
-  "/:id",
+  ROUTES.ROLES.BY_ID,
   requirePermissions("role.delete"),
+  requireGlobalAdmin(),
   validate({ params: roleIdParamsSchema }),
   asyncHandler(roleController.delete),
 );

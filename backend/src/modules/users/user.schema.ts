@@ -11,6 +11,7 @@ export const createUserSchema = z.object({
     .min(8, "Le mot de passe doit contenir au moins 8 caractères")
     .optional(),
   permissionIds: z.array(z.string().min(1)).optional().default([]),
+  agenceId: z.string().optional().nullable(),
 });
 
 export const updateUserSchema = z.object({
@@ -20,6 +21,7 @@ export const updateUserSchema = z.object({
   telephone: z.string().nullable().optional(),
   roleId: z.string().min(1).optional(),
   permissionIds: z.array(z.string().min(1)).optional().default([]),
+  agenceId: z.string().optional().nullable(),
 });
 
 export const updateUserStatusSchema = z.object({
@@ -31,6 +33,7 @@ export const userQuerySchema = z.object({
   limit: z.string().optional().default("10").transform(Number),
   search: z.string().optional(),
   roleId: z.string().optional(),
+  agenceId: z.string().optional(),
   actif: z
     .string()
     .optional()

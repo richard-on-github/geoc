@@ -3,6 +3,7 @@ import { useAuthStore, selectUser, useLogout } from '@/features/auth'
 import { getInitials } from '@/shared/utils'
 import { cn } from '@/shared/lib'
 import { useState, useRef, useEffect } from 'react'
+import { ChangePasswordModal } from '@/features/auth/components/ChangePasswordModal'
 
 export function UserMenu() {
   const user = useAuthStore(selectUser)
@@ -10,7 +11,8 @@ export function UserMenu() {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
-  // Fermeture au clic extérieur
+  const [showChangePassword, setShowChangePassword] = useState(false)
+
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (ref.current !== null && !ref.current.contains(e.target as Node)) {
@@ -41,7 +43,6 @@ export function UserMenu() {
           'text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))]',
         )}
       >
-        {/* Avatar */}
         <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[hsl(var(--primary))] text-xs font-semibold text-white">
           {getInitials(userFullName)}
         </div>
@@ -60,7 +61,6 @@ export function UserMenu() {
           aria-hidden="true"
         />
       </button>
-
       {/* Dropdown */}
       {open && (
         <div
@@ -70,13 +70,11 @@ export function UserMenu() {
             'bg-[hsl(var(--card))] py-1 shadow-md',
           )}
         >
-          {/* Info utilisateur */}
           <div className="border-b border-[hsl(var(--border))] px-3 py-2">
             <p className="text-sm font-medium">{userFullName}</p>
             <p className="truncate text-xs text-[hsl(var(--muted-foreground))]">{user.email}</p>
           </div>
 
-          {/* Actions */}
           <div className="py-1">
             <button
               type="button"
@@ -94,7 +92,8 @@ export function UserMenu() {
               role="menuitem"
               className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-[hsl(var(--foreground))] transition-colors hover:bg-[hsl(var(--muted))]"
               onClick={() => {
-                setOpen(false)
+                setShowChangePassword(true) // 1. Ouvre le modal
+                setOpen(false) // 2. Ferme le menu déroulant
               }}
             >
               <KeyRound
@@ -106,7 +105,6 @@ export function UserMenu() {
             </button>
           </div>
 
-          {/* Logout */}
           <div className="border-t border-[hsl(var(--border))] py-1">
             <button
               type="button"
@@ -123,6 +121,9 @@ export function UserMenu() {
             </button>
           </div>
         </div>
+      )}
+      {showChangePassword && (
+        <ChangePasswordModal open={showChangePassword} onOpenChange={setShowChangePassword} />
       )}
     </div>
   )

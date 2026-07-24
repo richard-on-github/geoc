@@ -20,6 +20,14 @@ const userSelect = {
             code: true,
         },
     },
+    agenceId: true,
+    agence: {
+        select: {
+            id: true,
+            nom: true,
+            code: true,
+        },
+    },
     permissions: {
         select: {
             permission: {
@@ -27,13 +35,13 @@ const userSelect = {
                     id: true,
                     nom: true,
                     code: true,
-                }
-            }
-        }
+                },
+            },
+        },
     },
     actif: true,
     mustChangePassword: true,
-    lastLoginAt:true,
+    lastLoginAt: true,
     createdAt: true,
     updatedAt: true,
 };
@@ -45,6 +53,7 @@ export const userRepository = {
             limit,
             search,
             roleId,
+            agenceId,
             actif,
             sortBy = "createdAt",
             sortOrder = "desc",
@@ -60,14 +69,11 @@ export const userRepository = {
                 {email: {contains: search, mode: "insensitive"}},
             ];
         }
+        if (roleId) where.roleId = roleId;
+        if (actif !== undefined) where.actif = actif;
+        if (agenceId) where.agenceId = agenceId;
 
-        if (roleId) {
-            where.roleId = roleId;
-        }
-
-        if (actif !== undefined) {
-            where.actif = actif;
-        }
+        // REMARQUE : Plus aucun traitement de scope manuel ici !
 
         const [users, total] = await Promise.all([
             prisma.user.findMany({
@@ -80,30 +86,26 @@ export const userRepository = {
             prisma.user.count({where}),
         ]);
 
-        const formattedUsers = users.map(user => ({
+        const formattedUsers = users.map((user) => ({
             ...user,
-            permissions: user.permissions.map(rp => rp.permission),
+            permissions: user.permissions.map((rp) => rp.permission),
         }));
 
-        return {
-            users: formattedUsers,
-            total,
-            page,
-            limit,
-        };
+        return {users: formattedUsers, total, page, limit};
     },
 
     async findById(id: string) {
-        const user = await prisma.user.findUnique({
+        // <-- Plus de paramètre scopeWhere
+        // Utilisation de findFirst pour s'accorder proprement avec les injections automatiques d'arguments where
+        const user = await prisma.user.findFirst({
             where: {id},
             select: userSelect,
         });
 
         if (!user) return null;
-
         return {
             ...user,
-            permissions: user?.permissions.map(u => u.permission),
+            permissions: user.permissions.map((u) => u.permission),
         };
     },
 
@@ -126,21 +128,25 @@ export const userRepository = {
                     telephone: data.telephone,
                     roleId: data.roleId,
                     passwordHash: data.passwordHash,
+                    agenceId: data.agenceId,
                     permissions: {
-                        create: data.permissionIds?.map(pId => ({ permissionId: pId })) || [],
+                        create:
+                            data.permissionIds?.map((pId) => ({permissionId: pId})) || [],
                     },
                 },
                 select: userSelect,
             });
-            return { ...user, permissions: user.permissions.map(p => p.permission) };
+            return {
+                ...user,
+                permissions: user.permissions.map((p) => p.permission),
+            };
         });
     },
 
     async update(id: string, data: UpdateUserInput) {
         return prisma.$transaction(async (tx) => {
-            // 1. Mise à jour utilisateur
             const updatedUser = await tx.user.update({
-                where: { id },
+                where: {id},
                 data: {
                     prenom: data.prenom,
                     nom: data.nom,
@@ -148,15 +154,18 @@ export const userRepository = {
                     telephone: data.telephone,
                     roleId: data.roleId,
                     mustChangePassword: data.mustChangePassword,
+                    agenceId: data.agenceId,
                 },
                 select: userSelect,
             });
 
-            // 2. Sync des permissions si le champ est fourni
             if (data.permissionIds) {
-                await tx.userPermission.deleteMany({ where: { userId: id } });
+                await tx.userPermission.deleteMany({where: {userId: id}});
                 await tx.userPermission.createMany({
-                    data: data.permissionIds.map(pId => ({ userId: id, permissionId: pId })),
+                    data: data.permissionIds.map((pId) => ({
+                        userId: id,
+                        permissionId: pId,
+                    })),
                 });
             }
 
@@ -181,8 +190,8 @@ export const userRepository = {
 
     async updateLastLogin(id: string) {
         return prisma.user.update({
-            where: { id },
-            data: { lastLoginAt: new Date() },
+            where: {id},
+            data: {lastLoginAt: new Date()},
         });
-    }
+    },
 };

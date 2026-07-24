@@ -35,7 +35,6 @@ export interface AuthTokens {
   expiresIn: number       // secondes
 }
 
-/* ---- Payloads requêtes ---- */
 
 export interface LoginPayload {
   email: string
@@ -45,20 +44,12 @@ export interface LoginPayload {
 export interface ChangePasswordPayload {
   currentPassword: string
   newPassword: string
-  confirmPassword: string
-}
-
-export interface ResetPasswordRequestPayload {
-  email: string
 }
 
 export interface ResetPasswordPayload {
-  token: string
+  userId: string
   newPassword: string
-  confirmPassword: string
 }
-
-/* ---- Réponses API ---- */
 
 export interface LoginData {
   user: AuthUser

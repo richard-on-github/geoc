@@ -4,7 +4,6 @@ import { ArrowLeft, Edit2, Save, X, Loader2 } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 
-// Assure-toi d'importer tes schémas et hooks de mise à jour
 import { updateUserSchema, type UpdateUserFormValues } from '../schemas'
 import { useUser, useUpdateUser } from '../hooks'
 
@@ -13,10 +12,10 @@ import { PageHeader } from '@/shared/components/layout/PageHeader'
 import { ErrorState } from '@/shared/components/feedback/ErrorState'
 import { formatDateTime, getInitials } from '@/shared/utils'
 
-// Composants de formulaire réutilisés
 import { Field } from '@/shared/components/forms/Field'
 import { RoleSelect } from '@/shared/components/forms/RoleSelect'
 import { PermissionsSelector } from '@/shared/components/forms/PermissionsSelector'
+import { AgenceSelect } from '@/shared/components/forms/AgenceSelect' // nouvel import
 
 const inputClass =
   'w-full rounded-[var(--radius)] border border-[hsl(var(--input))] bg-[hsl(var(--background))] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[hsl(var(--ring))] focus:ring-offset-1 disabled:opacity-50 aria-invalid:border-[hsl(var(--destructive))]'
@@ -46,12 +45,13 @@ export function UserDetailPage() {
           telephone: user.telephone ?? '',
           roleId: user.role.id,
           permissionIds: user.permissions.map((p) => p.id),
+          agenceId: user.agenceId ?? '', // nouveau champ
         }
       : undefined,
   })
 
   const handleCancel = () => {
-    reset() // Annule les modifications non sauvegardées
+    reset()
     setIsEditing(false)
   }
 
@@ -83,6 +83,8 @@ export function UserDetailPage() {
     return <ErrorState title="Utilisateur introuvable" onRetry={() => void refetch()} />
   }
 
+  const isSystemUser = user.role.name === 'SYSTEM'
+
   return (
     <div>
       <button
@@ -100,7 +102,7 @@ export function UserDetailPage() {
         actions={
           <div className="flex items-center gap-3">
             <UserStatusBadge isActive={user.isActive} />
-            {!isEditing && (
+            {!isEditing && !isSystemUser && (
               <button
                 type="button"
                 onClick={() => {
@@ -138,6 +140,8 @@ export function UserDetailPage() {
                 {[
                   { label: 'Rôle', value: user.role.displayName },
                   { label: 'Téléphone', value: user.telephone ?? 'Non renseigné' },
+                  // Ligne Agence ajoutée
+                  { label: 'Agence', value: user.agence?.nom ?? 'Aucune' },
                   { label: 'Créé le', value: formatDateTime(user.createdAt) },
                   { label: 'Modifié le', value: formatDateTime(user.updatedAt) },
                   {
@@ -207,6 +211,16 @@ export function UserDetailPage() {
                   aria-invalid={!!errors.roleId}
                   disabled={isUpdating}
                   {...register('roleId')}
+                />
+              </Field>
+              {/* Nouveau champ Agence */}
+              <Field id="agenceId" label="Agence" error={errors.agenceId?.message}>
+                <AgenceSelect
+                  id="agenceId"
+                  className={inputClass}
+                  aria-invalid={!!errors.agenceId}
+                  disabled={isUpdating}
+                  {...register('agenceId')}
                 />
               </Field>
             </div>

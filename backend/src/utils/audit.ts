@@ -10,6 +10,7 @@ interface AuditLogInput {
   before?: Prisma.JsonValue;
   after?: Prisma.JsonValue;
   message?: string;
+  agenceId?: string | null;
 }
 
 export async function logAudit(input: AuditLogInput): Promise<void> {
@@ -24,10 +25,10 @@ export async function logAudit(input: AuditLogInput): Promise<void> {
         before: input.before ?? undefined,
         after: input.after ?? undefined,
         message: input.message ?? null,
+        agenceId: input.agenceId ?? null,
       },
     });
   } catch (error) {
-    // Échec silencieux pour ne pas casser le flux principal
     console.error("Failed to write audit log:", error);
   }
 }

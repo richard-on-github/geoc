@@ -6,14 +6,15 @@ import { validate } from "../../middlewares/validate.middleware.js";
 import { asyncHandler } from "../../utils/asyncHandler.js";
 import { auditQuerySchema, auditIdParamsSchema } from "./audit.schema.js";
 import { ROUTES } from "../../constants/routes.js";
+import { initRequestContext } from "../../middlewares/context.middleware.js";
 
 const router = Router();
 
-// Factorisation de l'authentification
 router.use(authenticate());
+router.use(initRequestContext());
 
 router.get(
-  "/",
+  ROUTES.AUDIT.ROOT,
   requirePermissions("audit.read"),
   validate({ query: auditQuerySchema }),
   asyncHandler(auditController.findAll),

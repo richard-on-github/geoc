@@ -75,11 +75,18 @@ export function useDeleteRole() {
   })
 }
 
+export function usePermissions(params?: ListParams) {
+  return useQuery({
+    queryKey: [...SECURITY_QUERY_KEYS.permissions.lists(), params],
+    queryFn: () => securityApi.getPermissions(params),
+    placeholderData: (prev) => prev,
+  })
+}
+
 export function useAllPermissions() {
   return useQuery({
-    queryKey: SECURITY_QUERY_KEYS.permissions.lists(),
+    queryKey: [...SECURITY_QUERY_KEYS.permissions.all, 'all'],
     queryFn: () => securityApi.getAllPermissions(),
-    staleTime: 1000 * 60 * 15,
-    // pas de select
+    staleTime: 1000 * 60 * 10,
   })
 }

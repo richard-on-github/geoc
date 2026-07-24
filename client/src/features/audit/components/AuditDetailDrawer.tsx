@@ -1,6 +1,5 @@
 import { X } from 'lucide-react'
 import { AuditActionBadge } from './AuditActionBadge'
-import { JsonDiffViewer } from './JsonDiffViewer'
 import { AUDIT_ENTITY_LABELS } from '../constants'
 import { formatDateTime } from '@/shared/utils'
 import type { AuditLog } from '../types'
@@ -10,57 +9,166 @@ interface AuditDetailDrawerProps {
   onClose: () => void
 }
 
-export function AuditDetailDrawer({ log, onClose }: AuditDetailDrawerProps) {
+function formatValue(value: unknown): string {
+  if (value === null || value === undefined) return '—'
+  if (typeof value === 'boolean') return value ? '✅ Oui' : '❌ Non'
+  if (typeof value === 'object') return JSON.stringify(value, null, 2)
+  return String(value)
+}
+
+function renderDiff(before: Record<string, unknown> | null, after: Record<string, unknown> | null) {
+  if (!before && !after) {
+    return (
+      <p className="text-sm text-[hsl(var(--muted-foreground))] italic">
+        Aucune modification enregistrée.
+      </p>
+    )
+  }
+
+  const allKeys = new Set([...Object.keys(before || {}), ...Object.keys(after || {})])
+
+  // Filtrer les champs qui ont changé ou qui sont présents
+  const entries = Array.from(allKeys)
+    .filter((key) => {
+      const beforeVal = before?.[key]
+      const afterVal = after?.[key]
+      return JSON.stringify(beforeVal) !== JSON.stringify(afterVal)
+    })
+    .sort()
+
+  if (entries.length === 0) {
+    return (
+      <p className="text-sm text-[hsl(var(--muted-foreground))] italic">
+        Aucune modification détectée.
+      </p>
+    )
+  }
+
   return (
-    <div role="dialog" aria-modal="true" aria-labelledby="audit-detail-title" className="fixed inset-0 z-50 flex justify-end">
+    <div className="overflow-hidden rounded-lg border border-[hsl(var(--border))]">
+      <table className="w-full text-sm">
+        <thead className="bg-[hsl(var(--muted))]">
+          <tr>
+            <th className="w-1/4 px-3 py-2 text-left text-xs font-medium tracking-wider text-[hsl(var(--muted-foreground))] uppercase">
+              Champ
+            </th>
+            <th className="w-2/5 px-3 py-2 text-left text-xs font-medium tracking-wider text-[hsl(var(--muted-foreground))] uppercase">
+              Avant
+            </th>
+            <th className="w-2/5 px-3 py-2 text-left text-xs font-medium tracking-wider text-[hsl(var(--muted-foreground))] uppercase">
+              Après
+            </th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-[hsl(var(--border))] bg-[hsl(var(--card))]">
+          {entries.map((key) => {
+            const beforeVal = before?.[key]
+            const afterVal = after?.[key]
+            const isAdded = before === null || !(key in (before || {}))
+            const isRemoved = after === null || !(key in (after || {}))
+            const rowClass = isAdded
+              ? 'bg-[hsl(142,_64%,_96%)] border-l-2 border-l-[hsl(142,_64%,_38%)]'
+              : isRemoved
+                ? 'bg-[hsl(0,_84%,_97%)] border-l-2 border-l-[hsl(var(--destructive))]'
+                : 'bg-[hsl(38,_92%,_97%)] border-l-2 border-l-[hsl(38,_92%,_50%)]'
+            return (
+              <tr key={key} className={rowClass}>
+                <td className="px-3 py-2.5 align-top font-mono text-sm text-[hsl(var(--foreground))]">
+                  {key}
+                </td>
+                <td className="px-3 py-2.5 align-top font-mono text-sm break-all whitespace-pre-wrap text-[hsl(var(--muted-foreground))]">
+                  {isAdded ? '—' : formatValue(beforeVal)}
+                </td>
+                <td className="px-3 py-2.5 align-top font-mono text-sm break-all whitespace-pre-wrap text-[hsl(var(--foreground))]">
+                  {isRemoved ? '—' : formatValue(afterVal)}
+                </td>
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+export function AuditDetailDrawer({ log, onClose }: AuditDetailDrawerProps) {
+  const hasDiff = log.before !== null || log.after !== null
+
+  return (
+    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex justify-end">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
       <div className="relative z-10 flex h-full w-full max-w-xl flex-col bg-[hsl(var(--card))] shadow-lg">
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-[hsl(var(--border))] px-6 py-4 shrink-0">
-          <h2 id="audit-detail-title" className="text-base font-semibold">Détail de l'événement</h2>
-          <button type="button" onClick={onClose} aria-label="Fermer"
-            className="rounded-md p-1.5 hover:bg-[hsl(var(--muted))] transition-colors text-[hsl(var(--muted-foreground))]">
-            <X size={16} aria-hidden="true" />
+        <div className="flex shrink-0 items-center justify-between border-b border-[hsl(var(--border))] px-6 py-4">
+          <h2 className="text-base font-semibold">Détail de l'événement</h2>
+          <button
+            onClick={onClose}
+            className="rounded-md p-1.5 text-[hsl(var(--muted-foreground))] hover:bg-[hsl(var(--muted))]"
+          >
+            <X size={16} />
           </button>
         </div>
 
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
-          {/* Métadonnées */}
+        <div className="flex-1 space-y-6 overflow-y-auto p-6">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <p className="text-xs font-medium text-[hsl(var(--muted-foreground))] uppercase tracking-wider mb-1">Action</p>
+              <p className="mb-1 text-xs font-medium tracking-wider text-[hsl(var(--muted-foreground))] uppercase">
+                Action
+              </p>
               <AuditActionBadge action={log.action} />
             </div>
             <div>
-              <p className="text-xs font-medium text-[hsl(var(--muted-foreground))] uppercase tracking-wider mb-1">Entité</p>
+              <p className="mb-1 text-xs font-medium tracking-wider text-[hsl(var(--muted-foreground))] uppercase">
+                Entité
+              </p>
               <p className="text-sm text-[hsl(var(--foreground))]">
                 {AUDIT_ENTITY_LABELS[log.entity] ?? log.entity}
               </p>
             </div>
             <div>
-              <p className="text-xs font-medium text-[hsl(var(--muted-foreground))] uppercase tracking-wider mb-1">Utilisateur</p>
+              <p className="mb-1 text-xs font-medium tracking-wider text-[hsl(var(--muted-foreground))] uppercase">
+                Utilisateur
+              </p>
               <p className="text-sm text-[hsl(var(--foreground))]">{log.userName}</p>
               <p className="text-xs text-[hsl(var(--muted-foreground))]">{log.userEmail}</p>
             </div>
             <div>
-              <p className="text-xs font-medium text-[hsl(var(--muted-foreground))] uppercase tracking-wider mb-1">Adresse IP</p>
-              <p className="text-sm text-[hsl(var(--foreground))] font-mono">{log.ipAddress}</p>
+              <p className="mb-1 text-xs font-medium tracking-wider text-[hsl(var(--muted-foreground))] uppercase">
+                Adresse IP
+              </p>
+              <p className="font-mono text-sm text-[hsl(var(--foreground))]">{log.ipAddress}</p>
             </div>
             <div>
-              <p className="text-xs font-medium text-[hsl(var(--muted-foreground))] uppercase tracking-wider mb-1">Date</p>
-              <p className="text-sm text-[hsl(var(--foreground))]">{formatDateTime(log.createdAt)}</p>
+              <p className="mb-1 text-xs font-medium tracking-wider text-[hsl(var(--muted-foreground))] uppercase">
+                Date
+              </p>
+              <p className="text-sm text-[hsl(var(--foreground))]">
+                {formatDateTime(log.createdAt)}
+              </p>
             </div>
             <div>
-              <p className="text-xs font-medium text-[hsl(var(--muted-foreground))] uppercase tracking-wider mb-1">ID entité</p>
-              <p className="text-sm text-[hsl(var(--foreground))] font-mono truncate">{log.entityId}</p>
+              <p className="mb-1 text-xs font-medium tracking-wider text-[hsl(var(--muted-foreground))] uppercase">
+                ID entité
+              </p>
+              <p
+                className="truncate font-mono text-sm text-[hsl(var(--foreground))]"
+                title={log.entityId}
+              >
+                {log.entityId}
+              </p>
             </div>
           </div>
 
-          {/* Diff */}
           <div>
-            <p className="text-sm font-semibold text-[hsl(var(--foreground))] mb-2">Modifications</p>
-            <JsonDiffViewer before={log.before} after={log.after} />
+            <p className="mb-2 text-sm font-semibold text-[hsl(var(--foreground))]">
+              Détails de la modification
+            </p>
+            {hasDiff ? (
+              renderDiff(log.before, log.after)
+            ) : (
+              <p className="text-sm text-[hsl(var(--muted-foreground))] italic">
+                {log.message || 'Aucune donnée supplémentaire.'}
+              </p>
+            )}
           </div>
         </div>
       </div>

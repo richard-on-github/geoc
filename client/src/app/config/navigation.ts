@@ -4,25 +4,19 @@ import {
   ShieldCheck,
   ClipboardList,
   Key,
+  Building2, // Nouveau
+  ShoppingCart, // Nouveau
   type LucideIcon,
 } from 'lucide-react'
-
-/**
- * Définition déclarative de la navigation GEOC.
- * Chaque entrée déclare sa permission requise.
- * La sidebar filtre dynamiquement selon les permissions de l'utilisateur.
- *
- * Structure extensible : ajouter un module = ajouter un NavItem ici.
- */
 
 export interface NavItem {
   id: string
   label: string
   href?: string
   icon: LucideIcon
-  permission?: string           // permission requise pour voir cette entrée
+  permission?: string
   children?: NavChildItem[]
-  badge?: string                // badge optionnel (ex: "Nouveau")
+  badge?: string
 }
 
 export interface NavChildItem {
@@ -38,7 +32,6 @@ export const navigationConfig: NavItem[] = [
     label: 'Tableau de bord',
     href: '/dashboard',
     icon: LayoutDashboard,
-    // Accessible à tous les utilisateurs authentifiés
   },
   {
     id: 'users',
@@ -46,6 +39,20 @@ export const navigationConfig: NavItem[] = [
     href: '/users',
     icon: Users,
     permission: 'user.read',
+  },
+  {
+    id: 'agences',
+    label: 'Agences',
+    href: '/agences',
+    icon: Building2,
+    permission: 'agence.read',
+  },
+  {
+    id: 'ventes',
+    label: 'Ventes',
+    href: '/ventes',
+    icon: ShoppingCart,
+    permission: 'vente.read',
   },
   {
     id: 'security',
@@ -69,16 +76,13 @@ export const navigationConfig: NavItem[] = [
   },
   {
     id: 'audit',
-    label: 'Journal d\'audit',
+    label: "Journal d'audit",
     href: '/audit',
     icon: ClipboardList,
     permission: 'audit.read',
   },
 ]
 
-/**
- * Entrées réservées au bas de la sidebar (settings, etc.)
- */
 export const navigationBottomConfig: NavItem[] = [
   {
     id: 'my-permissions',

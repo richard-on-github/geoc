@@ -1,6 +1,13 @@
 import {Prisma} from "@prisma/client";
 import {prisma} from "../../config/prisma.js";
-import type {PermissionQueryParams} from "./permission.interface.js";
+import type {PermissionAllQueryParams, PermissionQueryParams} from "./permission.interface.js";
+
+const permissionMinimalSelect = {
+    id: true,
+    nom: true,
+    code: true,
+    description: true,
+};
 
 const permissionSelect = {
     id: true,
@@ -87,6 +94,27 @@ export const permissionRepository = {
 
         return permission ? formatPermission(permission) : null;
     },
+
+    async findAllWithoutPagination(params: PermissionAllQueryParams = {}) {
+        const {search} = params;
+        const where: Prisma.PermissionWhereInput = {};
+
+        if (search) {
+            where.OR = [
+                {nom: {contains: search, mode: "insensitive"}},
+                {code: {contains: search, mode: "insensitive"}},
+            ];
+        }
+
+        const permissions = await prisma.permission.findMany({
+            where,
+            select: permissionMinimalSelect,
+            orderBy: {code: "asc"},
+        });
+
+        return {permissions}
+    },
+
 
     async findByCode(code: string) {
         return prisma.permission.findUnique({

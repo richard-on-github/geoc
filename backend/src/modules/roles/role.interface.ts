@@ -1,9 +1,11 @@
-import type { Role } from "@prisma/client";
+export type RoleScope = "GLOBAL" | "AGENCE";
 
 export interface CreateRoleInput {
   nom: string;
   code: string;
   description?: string;
+  dataScope: RoleScope;
+  niveau: number;
   permissionIds?: string[];
 }
 
@@ -11,6 +13,8 @@ export interface UpdateRoleInput {
   nom?: string;
   code?: string;
   description?: string;
+  dataScope?: RoleScope;
+  niveau?: number;
   actif?: boolean;
   permissionIds?: string[];
 }
@@ -20,8 +24,11 @@ export interface RoleQueryParams {
   limit: number;
   search?: string;
   actif?: boolean;
+  dataScope?: RoleScope;
 }
 
-export interface RolePermissionInput {
-  permissionIds: string[];
+export interface RoleAllQueryParams {
+  search?: string;
+  actif?: boolean;
+  dataScope?: RoleScope;
 }

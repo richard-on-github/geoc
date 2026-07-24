@@ -40,7 +40,7 @@ export const userController = {
   ) {
     const { id } = req.params;
     const input: UpdateUserInput = req.body;
-    const user = await userService.update(id, input, req.user!.id, req.ip);
+    const user = await userService.update(id, input, req.user!.id, req.ip); // <-- Nettoyé
     successResponse(res, HTTP_STATUS.OK, MESSAGES.USER_UPDATED, user);
   },
 
@@ -56,7 +56,7 @@ export const userController = {
       input,
       req.user!.id,
       req.ip,
-    );
+    ); // <-- Nettoyé
     successResponse(res, HTTP_STATUS.OK, MESSAGES.USER_UPDATED, user);
   },
 
@@ -66,7 +66,7 @@ export const userController = {
     next: NextFunction,
   ) {
     const { id } = req.params;
-    await userService.delete(id, req.user!.id, req.ip);
+    await userService.delete(id, req.user!.id, req.ip); // <-- Nettoyé
     successResponse(res, HTTP_STATUS.OK, MESSAGES.USER_DELETED, null);
   },
 };

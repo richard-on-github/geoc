@@ -62,6 +62,8 @@ export function RoleFormModal({ mode, role, onClose }: RoleFormModalProps) {
           nom: role.nom,
           code: role.code,
           description: role.description ?? '',
+          dataScope: role.dataScope,
+          niveau: role.niveau,
           actif: role.actif,
           permissionIds: role.permissions.map((p) => p.id),
         }
@@ -69,6 +71,8 @@ export function RoleFormModal({ mode, role, onClose }: RoleFormModalProps) {
           nom: '',
           code: '',
           description: '',
+          dataScope: 'GLOBAL' as const,
+          niveau: 0,
           permissionIds: [],
         }
 
@@ -89,6 +93,8 @@ export function RoleFormModal({ mode, role, onClose }: RoleFormModalProps) {
         nom: role.nom,
         code: role.code,
         description: role.description ?? '',
+        dataScope: role.dataScope,
+        niveau: role.niveau,
         actif: role.actif,
         permissionIds: role.permissions.map((p) => p.id),
       })
@@ -133,7 +139,6 @@ export function RoleFormModal({ mode, role, onClose }: RoleFormModalProps) {
         {/* Form */}
         <form onSubmit={handleSubmit(onSubmit)} noValidate>
           <div className="max-h-[70vh] space-y-5 overflow-y-auto p-6">
-            {/* Champs communs */}
             <Field id="nom" label="Nom du rôle" error={formErrors['nom']?.message}>
               <input
                 id="nom"
@@ -158,6 +163,35 @@ export function RoleFormModal({ mode, role, onClose }: RoleFormModalProps) {
                 {...register('code')}
               />
             </Field>
+
+            {/* Nouveaux champs : dataScope et niveau */}
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Field id="dataScope" label="Scope" error={formErrors['dataScope']?.message}>
+                <select
+                  id="dataScope"
+                  className={inputClass}
+                  aria-invalid={!!formErrors['dataScope']}
+                  disabled={isPending}
+                  {...register('dataScope')}
+                >
+                  <option value="GLOBAL">Global</option>
+                  <option value="AGENCE">Agence</option>
+                </select>
+              </Field>
+
+              <Field id="niveau" label="Niveau" error={formErrors['niveau']?.message}>
+                <input
+                  id="niveau"
+                  type="number"
+                  min="0"
+                  step="1"
+                  className={inputClass}
+                  aria-invalid={!!formErrors['niveau']}
+                  disabled={isPending}
+                  {...register('niveau', { valueAsNumber: true })}
+                />
+              </Field>
+            </div>
 
             {mode === 'edit' && (
               <div className="flex items-center gap-3">

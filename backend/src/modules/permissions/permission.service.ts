@@ -4,7 +4,7 @@ import { HTTP_STATUS } from "../../constants/http-status.js";
 import { MESSAGES } from "../../constants/messages.js";
 import { logAudit } from "../../utils/audit.js";
 import { AuditAction } from "@prisma/client";
-import type { PermissionQueryParams } from "./permission.interface.js";
+import type {PermissionAllQueryParams, PermissionQueryParams} from "./permission.interface.js";
 import { getPaginationMeta } from "../../utils/pagination.js";
 
 export const permissionService = {
@@ -13,6 +13,10 @@ export const permissionService = {
       await permissionRepository.findAll(params);
     const pagination = getPaginationMeta(total, page, limit);
     return { permissions, pagination };
+  },
+
+  async getAllWithoutPagination(params: PermissionAllQueryParams) {
+    return permissionRepository.findAllWithoutPagination(params);
   },
 
   async getById(id: string) {

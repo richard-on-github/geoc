@@ -1,10 +1,5 @@
 import { cn } from '@/shared/lib'
 import { AUDIT_ACTION_LABELS, AUDIT_ACTION_COLORS } from '../constants'
-import type { AuditAction } from '../types'
-
-interface AuditActionBadgeProps {
-  action: AuditAction
-}
 
 const COLOR_CLASSES: Record<string, string> = {
   success: 'bg-[hsl(142,_64%,_96%)] text-[hsl(142,_64%,_28%)]',
@@ -14,8 +9,10 @@ const COLOR_CLASSES: Record<string, string> = {
   neutral: 'bg-[hsl(var(--muted))] text-[hsl(var(--muted-foreground))]',
 }
 
-export function AuditActionBadge({ action }: AuditActionBadgeProps) {
+export function AuditActionBadge({ action }: { action: string }) {
   const color = AUDIT_ACTION_COLORS[action] ?? 'neutral'
+  const label = AUDIT_ACTION_LABELS[action] ?? action
+
   return (
     <span
       className={cn(
@@ -23,7 +20,7 @@ export function AuditActionBadge({ action }: AuditActionBadgeProps) {
         COLOR_CLASSES[color],
       )}
     >
-      {AUDIT_ACTION_LABELS[action] ?? action}
+      {label}
     </span>
   )
 }

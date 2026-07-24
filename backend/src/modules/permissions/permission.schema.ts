@@ -6,6 +6,10 @@ export const permissionQuerySchema = z.object({
   search: z.string().optional(),
 });
 
+export const permissionAllQuerySchema = z.object({
+  search: z.string().optional(),
+});
+
 export const permissionIdParamsSchema = z.object({
   id: z.string().min(1, "ID permission requis"),
 });

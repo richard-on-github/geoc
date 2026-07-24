@@ -3,9 +3,10 @@ import type { ApiResponse, ApiPaginatedResponse, ListParams } from '@/shared/typ
 import type { User, CreateUserPayload, UpdateUserPayload } from '../types'
 
 function mapUser(raw: any): User {
-  const cleanPermissions = (raw.permissions ?? []).map((p: any) =>
-    p.permission ? p.permission : p,
-  )
+  const cleanPermissions = (raw.permissions ?? []).map((p: any) => {
+    const perm = p.permission ? p.permission : p
+    return { id: perm.id, nom: perm.nom }
+  })
 
   return {
     id: raw.id,
@@ -23,12 +24,21 @@ function mapUser(raw: any): User {
       name: raw.role.code,
       displayName: raw.role.nom,
     },
+    // Nouveaux champs
+    agenceId: raw.agenceId ?? null,
+    agence: raw.agence
+      ? {
+          id: raw.agence.id,
+          nom: raw.agence.nom,
+          code: raw.agence.code,
+        }
+      : null,
     agencyName: raw.agence?.nom ?? null,
+
     createdAt: raw.createdAt,
     updatedAt: raw.updatedAt,
     lastLoginAt: raw.lastLoginAt ?? null,
 
-    // On utilise le tableau nettoyé et standardisé
     permissions: cleanPermissions,
   }
 }
@@ -85,5 +95,12 @@ export const usersApi = {
       actif,
     })
     return mapUser(response.data.data)
+  },
+
+  async resetPassword(userId: string, newPassword: string): Promise<void> {
+    await axiosInstance.post('/auth/reset-password', {
+      userId,
+      newPassword,
+    })
   },
 }

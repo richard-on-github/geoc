@@ -1,17 +1,21 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router' // ← ajout
+import { useNavigate } from 'react-router'
 import { ShieldPlus } from 'lucide-react'
 import { PageHeader } from '@/shared/components/layout/PageHeader'
 import { Can } from '@/shared/components/navigation/Can'
 import { RolesGrid } from '../components/RolesGrid'
-import { RoleFormModal } from '../components/RoleFormModal' // gardé pour l'édition
+import { RoleFormModal } from '../components/RoleFormModal'
 import { DeleteRoleDialog } from '../components/DeleteRoleDialog'
 import type { Role } from '../types'
 
 export function RolesListPage() {
-  const navigate = useNavigate() // ← ajout
+  const navigate = useNavigate()
   const [roleToEdit, setRoleToEdit] = useState<Role | null>(null)
   const [roleToDelete, setRoleToDelete] = useState<Role | null>(null)
+
+  const handleViewDetail = (id: string) => {
+    navigate(`/security/roles/${id}`)
+  }
 
   return (
     <div>
@@ -33,18 +37,27 @@ export function RolesListPage() {
       />
 
       <RolesGrid
-        onEdit={(role) => { setRoleToEdit(role); }}
-        onDelete={(role) => { setRoleToDelete(role); }}
+        onEdit={setRoleToEdit}
+        onDelete={setRoleToDelete}
+        onViewDetail={handleViewDetail}
       />
 
-      {/* Modal d'édition (conservé) */}
-      {roleToEdit !== null && (
-        <RoleFormModal mode="edit" role={roleToEdit} onClose={() => { setRoleToEdit(null); }} />
+      {roleToEdit && (
+        <RoleFormModal
+          mode="edit"
+          role={roleToEdit}
+          onClose={() => {
+            setRoleToEdit(null)
+          }}
+        />
       )}
-
-      {/* Dialog de suppression */}
-      {roleToDelete !== null && (
-        <DeleteRoleDialog role={roleToDelete} onClose={() => { setRoleToDelete(null); }} />
+      {roleToDelete && (
+        <DeleteRoleDialog
+          role={roleToDelete}
+          onClose={() => {
+            setRoleToDelete(null)
+          }}
+        />
       )}
     </div>
   )

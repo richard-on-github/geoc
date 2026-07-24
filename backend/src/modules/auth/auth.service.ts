@@ -2,7 +2,6 @@ import crypto from "crypto";
 import { authRepository } from "./auth.repository.js";
 import { ApiError } from "../../utils/ApiError.js";
 import { MESSAGES } from "../../constants/messages.js";
-import { HTTP_STATUS } from "../../constants/http-status.js";
 import {
   generateAccessToken,
   generateRefreshToken,
@@ -18,7 +17,7 @@ import type {
 } from "./auth.interface.js";
 import { logAudit } from "../../utils/audit.js";
 import { AuditAction } from "@prisma/client";
-import {userRepository} from "../users/user.repository.js";
+import { userRepository } from "../users/user.repository.js";
 
 function buildJwtPayload(user: any) {
   const roleCode = user.role?.code || "USER";
@@ -26,7 +25,6 @@ function buildJwtPayload(user: any) {
     user.role?.permissions.map((rp: any) => rp.permission.code) || [];
   const directPermissions =
     user.permissions.map((up: any) => up.permission.code) || [];
-
   const allPermissions = Array.from(
     new Set([...rolePermissions, ...directPermissions]),
   );
@@ -35,6 +33,8 @@ function buildJwtPayload(user: any) {
     sub: user.id,
     role: roleCode,
     permissions: allPermissions,
+    dataScope: user.role?.dataScope || "AGENCE",
+    agenceId: user.agenceId || null,
   };
 }
 
@@ -47,6 +47,12 @@ export const authService = {
 
     if (!user.actif) {
       throw ApiError.forbidden(MESSAGES.ACCOUNT_DISABLED);
+    }
+
+    if (user.agence && !user.agence.actif) {
+      throw ApiError.forbidden(
+        "Votre agence est désactivée. Connexion impossible.",
+      );
     }
 
     const isValidPassword = await comparePassword(
@@ -74,7 +80,6 @@ export const authService = {
       refreshTokenHash,
       expiresAt,
     );
-
     await userRepository.updateLastLogin(user.id);
 
     await logAudit({
@@ -84,6 +89,7 @@ export const authService = {
       userId: user.id,
       ip: ip ?? "",
       message: "Connexion réussie",
+      agenceId: user.agenceId,
     });
 
     return { accessToken, refreshToken };
@@ -97,11 +103,11 @@ export const authService = {
     const tokenHash = await authRepository.hashToken(input.refreshToken);
     const storedToken = await authRepository.findRefreshTokenByHash(tokenHash);
 
-    if (!storedToken) {
-      throw ApiError.unauthorized(MESSAGES.REFRESH_TOKEN_REVOKED);
-    }
-
-    if (storedToken.revoked || storedToken.expiresAt < new Date()) {
+    if (
+      !storedToken ||
+      storedToken.revoked ||
+      storedToken.expiresAt < new Date()
+    ) {
       throw ApiError.unauthorized(MESSAGES.REFRESH_TOKEN_REVOKED);
     }
 
@@ -114,6 +120,12 @@ export const authService = {
     const user = await authRepository.findUserById(payload.sub);
     if (!user || !user.actif) {
       throw ApiError.unauthorized(MESSAGES.USER_NOT_FOUND);
+    }
+
+    if (user.agence && !user.agence.actif) {
+      throw ApiError.forbidden(
+        "Votre agence est désactivée. Connexion impossible.",
+      );
     }
 
     const newRefreshJti = crypto.randomUUID();
@@ -129,10 +141,25 @@ export const authService = {
     const newJwtPayload = buildJwtPayload(user);
     const accessToken = generateAccessToken(newJwtPayload);
 
+    await logAudit({
+      action: AuditAction.CONNEXION,
+      entity: "User",
+      entityId: user.id,
+      userId: user.id,
+      ip: ip ?? "",
+      message: "Renouvellement du token",
+      agenceId: user.agenceId,
+    });
+
     return { accessToken, refreshToken: newRefreshToken };
   },
 
   async logout(userId: string, refreshToken?: string, ip?: string) {
+    const user = await authRepository.findUserById(userId);
+    if (!user) {
+      throw ApiError.notFound(MESSAGES.USER_NOT_FOUND);
+    }
+
     if (refreshToken) {
       const tokenHash = await authRepository.hashToken(refreshToken);
       const storedToken =
@@ -141,7 +168,6 @@ export const authService = {
         await authRepository.revokeRefreshToken(storedToken.id);
       }
     } else {
-      // Révoquer tous les refresh tokens de l'utilisateur
       await authRepository.revokeAllUserRefreshTokens(userId);
     }
 
@@ -152,6 +178,7 @@ export const authService = {
       userId,
       ip: ip ?? "",
       message: "Déconnexion",
+      agenceId: user.agenceId,
     });
   },
 
@@ -175,8 +202,6 @@ export const authService = {
 
     const newHash = await hashPassword(input.newPassword);
     await authRepository.updateUserPassword(userId, newHash);
-
-    // Révoquer tous les tokens pour forcer une nouvelle connexion
     await authRepository.revokeAllUserRefreshTokens(userId);
 
     await logAudit({
@@ -186,6 +211,7 @@ export const authService = {
       userId,
       ip: ip ?? "",
       message: "Changement de mot de passe",
+      agenceId: user.agenceId,
     });
   },
 
@@ -197,7 +223,6 @@ export const authService = {
 
     const newHash = await hashPassword(input.newPassword);
     await authRepository.updateUserPassword(input.userId, newHash);
-
     await authRepository.revokeAllUserRefreshTokens(input.userId);
 
     await logAudit({
@@ -207,6 +232,7 @@ export const authService = {
       userId: adminId,
       ip: ip ?? "",
       message: `Mot de passe réinitialisé par l'administrateur ${adminId}`,
+      agenceId: targetUser.agenceId, // on trace l'agence de l'utilisateur cible
     });
   },
 
@@ -217,7 +243,6 @@ export const authService = {
     }
 
     const { passwordHash, ...userWithoutPassword } = user;
-
     return {
       ...userWithoutPassword,
       permissions: buildJwtPayload(user).permissions,

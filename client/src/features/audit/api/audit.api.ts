@@ -43,7 +43,7 @@ export const auditApi = {
 
     const mappedLogs: AuditLog[] = logs.map((log) => ({
       id: log.id,
-      action: mapAction(log.action),
+      action: log.action,
       entity: log.entity,
       entityId: log.entityId,
       userId: log.userId,
@@ -66,15 +66,6 @@ export const auditApi = {
   },
 }
 
-function mapAction(backendAction: string): AuditAction {
-  const mapping: Record<string, AuditAction> = {
-    CONNEXION: 'login',
-    DECONNEXION: 'logout',
-    CREATION: 'create',
-    MODIFICATION: 'update',
-    SUPPRESSION: 'delete',
-    ACTIVATION: 'activate',
-    DESACTIVATION: 'deactivate',
-  }
-  return mapping[backendAction] ?? 'update'
+function mapAction(backendAction: string): string {
+  return backendAction
 }

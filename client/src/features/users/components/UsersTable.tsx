@@ -24,9 +24,13 @@ import { EmptyState } from '@/shared/components/feedback/EmptyState'
 import { cn } from '@/shared/lib'
 import { formatDateTime, getInitials } from '@/shared/utils'
 import type { User } from '../types'
+import { ResetPasswordModal } from './ResetPassworModal'
 
 interface UsersTableProps {
   search: string
+  statusFilter?: boolean
+  roleFilter?: string
+  agenceFilter?: string
   onEdit: (user: User) => void
   onDelete: (user: User) => void
   onToggleStatus: (user: User) => void
@@ -43,6 +47,7 @@ interface UserActionsMenuProps {
   onEdit: (user: User) => void
   onToggleStatus: (user: User) => void
   onDelete: (user: User) => void
+  onResetPassword: (user: User) => void
 }
 
 function UserActionsMenu({
@@ -54,6 +59,7 @@ function UserActionsMenu({
   onViewDetail,
   onToggleStatus,
   onDelete,
+  onResetPassword,
 }: UserActionsMenuProps) {
   const isOpen = actionOpen === user.id
   const menuRef = useRef<HTMLDivElement>(null)
@@ -122,6 +128,18 @@ function UserActionsMenu({
             {user.isActive ? 'Désactiver' : 'Activer'}
           </button>
 
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => {
+              setActionOpen(null)
+              onResetPassword(user) // ← appel
+            }}
+            className="flex w-full items-center px-3 py-2 text-sm transition-colors hover:bg-[hsl(var(--muted))]"
+          >
+            Réinitialiser le mot de passe
+          </button>
+
           <div className="my-1 border-t border-[hsl(var(--border))]" />
 
           <button
@@ -145,6 +163,9 @@ const PAGE_SIZES = [10, 20, 50]
 
 export function UsersTable({
   search,
+  statusFilter,
+  roleFilter,
+  agenceFilter,
   onEdit,
   onDelete,
   onToggleStatus,
@@ -153,8 +174,8 @@ export function UsersTable({
   const [sorting, setSorting] = useState<SortingState>([])
   const [pagination, setPagination] = useState<PaginationState>({ pageIndex: 0, pageSize: 10 })
   const [actionOpen, setActionOpen] = useState<string | null>(null)
+  const [resetPasswordUser, setResetPasswordUser] = useState<User | null>(null)
 
-  // CRITIQUE : Réinitialiser la pageIndex à 0 (Page 1) dès que la recherche change
   useEffect(() => {
     setPagination((p) => ({ ...p, pageIndex: 0 }))
   }, [search])
@@ -171,8 +192,11 @@ export function UsersTable({
             ? ('desc' as const)
             : ('asc' as const)
           : undefined,
+      actif: statusFilter ?? undefined,
+      roleId: roleFilter ?? undefined,
+      agenceId: agenceFilter ?? undefined,
     }),
-    [pagination, sorting, search],
+    [pagination, sorting, search, statusFilter, roleFilter, agenceFilter],
   )
 
   const { data, isLoading } = useUsers(queryParams)
@@ -226,6 +250,17 @@ export function UsersTable({
         cell: ({ row }) => <UserStatusBadge isActive={row.original.isActive} />,
       },
       {
+        id: 'agence',
+        header: 'Agence',
+        accessorKey: 'agence.nom',
+        enableSorting: false,
+        cell: ({ row }) => (
+          <span className="text-sm text-[hsl(var(--muted-foreground))]">
+            {row.original.agence?.nom ?? '—'}
+          </span>
+        ),
+      },
+      {
         id: 'lastLogin',
         header: 'Dernière connexion',
         accessorKey: 'lastLoginAt',
@@ -254,19 +289,26 @@ export function UsersTable({
         id: 'actions',
         header: '',
         enableSorting: false,
-        cell: ({ row, table }) => (
-          <UserActionsMenu
-            user={row.original}
-            row={row}
-            table={table}
-            actionOpen={actionOpen}
-            setActionOpen={setActionOpen}
-            onViewDetail={onViewDetail}
-            onEdit={onEdit}
-            onToggleStatus={onToggleStatus}
-            onDelete={onDelete}
-          />
-        ),
+        cell: ({ row, table }) => {
+          const user = row.original
+          if (user.role.name === 'SYSTEM') {
+            return null
+          }
+          return (
+            <UserActionsMenu
+              user={row.original}
+              row={row}
+              table={table}
+              actionOpen={actionOpen}
+              setActionOpen={setActionOpen}
+              onViewDetail={onViewDetail}
+              onEdit={onEdit}
+              onToggleStatus={onToggleStatus}
+              onDelete={onDelete}
+              onResetPassword={setResetPasswordUser}
+            />
+          )
+        },
       },
     ],
     [actionOpen, onEdit, onDelete, onToggleStatus, onViewDetail],
@@ -350,126 +392,135 @@ export function UsersTable({
   const to = Math.min((pagination.pageIndex + 1) * pagination.pageSize, total)
 
   return (
-    <div className="space-y-4">
-      <div className="overflow-hidden rounded-lg border border-[hsl(var(--border))] shadow-sm">
-        <table className="w-full text-sm" aria-label="Liste des utilisateurs">
-          <thead className="bg-[hsl(var(--muted))]">
-            {table.getHeaderGroups().map((hg) => (
-              <tr key={hg.id}>
-                {hg.headers.map((header) => (
-                  <th
-                    key={header.id}
-                    className="px-4 py-3 text-left text-xs font-medium tracking-wider text-[hsl(var(--muted-foreground))] uppercase"
-                  >
-                    {header.column.getCanSort() ? (
-                      <button
-                        type="button"
-                        onClick={header.column.getToggleSortingHandler()}
-                        className="flex items-center gap-1 transition-colors hover:text-[hsl(var(--foreground))]"
-                      >
-                        {flexRender(header.column.columnDef.header, header.getContext())}
-                        {header.column.getIsSorted() === 'asc' ? (
-                          <ArrowUp size={12} aria-hidden="true" />
-                        ) : header.column.getIsSorted() === 'desc' ? (
-                          <ArrowDown size={12} aria-hidden="true" />
-                        ) : (
-                          <ArrowUpDown size={12} className="opacity-40" aria-hidden="true" />
-                        )}
-                      </button>
-                    ) : (
-                      flexRender(header.column.columnDef.header, header.getContext())
-                    )}
-                  </th>
-                ))}
-              </tr>
-            ))}
-          </thead>
-          <tbody className="divide-y divide-[hsl(var(--border))] bg-[hsl(var(--card))]">
-            {table.getRowModel().rows.map((row) => (
-              <tr key={row.id} className="transition-colors hover:bg-[hsl(var(--muted))]/50">
-                {row.getVisibleCells().map((cell) => (
-                  <td
-                    key={cell.id}
-                    className={cn('px-4 py-3', cell.column.id === 'actions' && 'w-12')}
-                  >
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+    <>
+      <div className="space-y-4">
+        <div className="overflow-hidden rounded-lg border border-[hsl(var(--border))] shadow-sm">
+          <table className="w-full text-sm" aria-label="Liste des utilisateurs">
+            <thead className="bg-[hsl(var(--muted))]">
+              {table.getHeaderGroups().map((hg) => (
+                <tr key={hg.id}>
+                  {hg.headers.map((header) => (
+                    <th
+                      key={header.id}
+                      className="px-4 py-3 text-left text-xs font-medium tracking-wider text-[hsl(var(--muted-foreground))] uppercase"
+                    >
+                      {header.column.getCanSort() ? (
+                        <button
+                          type="button"
+                          onClick={header.column.getToggleSortingHandler()}
+                          className="flex items-center gap-1 transition-colors hover:text-[hsl(var(--foreground))]"
+                        >
+                          {flexRender(header.column.columnDef.header, header.getContext())}
+                          {header.column.getIsSorted() === 'asc' ? (
+                            <ArrowUp size={12} aria-hidden="true" />
+                          ) : header.column.getIsSorted() === 'desc' ? (
+                            <ArrowDown size={12} aria-hidden="true" />
+                          ) : (
+                            <ArrowUpDown size={12} className="opacity-40" aria-hidden="true" />
+                          )}
+                        </button>
+                      ) : (
+                        flexRender(header.column.columnDef.header, header.getContext())
+                      )}
+                    </th>
+                  ))}
+                </tr>
+              ))}
+            </thead>
+            <tbody className="divide-y divide-[hsl(var(--border))] bg-[hsl(var(--card))]">
+              {table.getRowModel().rows.map((row) => (
+                <tr key={row.id} className="transition-colors hover:bg-[hsl(var(--muted))]/50">
+                  {row.getVisibleCells().map((cell) => (
+                    <td
+                      key={cell.id}
+                      className={cn('px-4 py-3', cell.column.id === 'actions' && 'w-12')}
+                    >
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
 
-      {/* Barre de Pagination Unifiée (Structure Spécifique Audit) */}
-      {total > 0 && (
-        <div className="flex flex-col items-center justify-between gap-4 border-t border-[hsl(var(--border))] pt-3 text-sm sm:flex-row">
-          {/* Section Gauche : Totalisateur Pro */}
-          <p className="font-medium text-[hsl(var(--muted-foreground))]">
-            {from} à {to} sur {total} utilisateur{total > 1 ? 's' : ''}
-          </p>
+        {total > 0 && (
+          <div className="flex flex-col items-center justify-between gap-4 border-t border-[hsl(var(--border))] pt-3 text-sm sm:flex-row">
+            {/* Section Gauche : Totalisateur Pro */}
+            <p className="font-medium text-[hsl(var(--muted-foreground))]">
+              {from} à {to} sur {total} utilisateur{total > 1 ? 's' : ''}
+            </p>
 
-          {/* Section Droite : Contrôles */}
-          <div className="flex flex-wrap items-center gap-6">
-            {/* Sélecteur de taille (Lignes par page via boutons) */}
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-medium text-[hsl(var(--muted-foreground))]">
-                Lignes par page :
-              </span>
-              <div className="flex items-center gap-1">
-                {PAGE_SIZES.map((size) => (
-                  <button
-                    key={size}
-                    type="button"
-                    onClick={() => {
-                      setPagination((p) => ({ ...p, pageIndex: 0, pageSize: size }))
-                    }}
-                    className={cn(
-                      'h-7 min-w-[28px] rounded-[var(--radius-sm)] border border-[hsl(var(--border))] px-1.5 text-xs font-medium transition-colors hover:bg-[hsl(var(--muted))]',
-                      pagination.pageSize === size
-                        ? 'border-[hsl(var(--primary))] bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))]'
-                        : 'bg-[hsl(var(--card))] text-[hsl(var(--foreground))]',
-                    )}
-                  >
-                    {size}
-                  </button>
-                ))}
+            {/* Section Droite : Contrôles */}
+            <div className="flex flex-wrap items-center gap-6">
+              {/* Sélecteur de taille (Lignes par page via boutons) */}
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-medium text-[hsl(var(--muted-foreground))]">
+                  Lignes par page :
+                </span>
+                <div className="flex items-center gap-1">
+                  {PAGE_SIZES.map((size) => (
+                    <button
+                      key={size}
+                      type="button"
+                      onClick={() => {
+                        setPagination((p) => ({ ...p, pageIndex: 0, pageSize: size }))
+                      }}
+                      className={cn(
+                        'h-7 min-w-[28px] rounded-[var(--radius-sm)] border border-[hsl(var(--border))] px-1.5 text-xs font-medium transition-colors hover:bg-[hsl(var(--muted))]',
+                        pagination.pageSize === size
+                          ? 'border-[hsl(var(--primary))] bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))]'
+                          : 'bg-[hsl(var(--card))] text-[hsl(var(--foreground))]',
+                      )}
+                    >
+                      {size}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Navigation des pages (Chevrons) */}
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  disabled={!table.getCanPreviousPage()}
+                  onClick={() => {
+                    table.previousPage()
+                  }}
+                  className="flex h-7 w-7 items-center justify-center rounded-[var(--radius-sm)] border border-[hsl(var(--border))] bg-[hsl(var(--card))] transition-colors hover:bg-[hsl(var(--muted))] disabled:cursor-not-allowed disabled:opacity-40"
+                  aria-label="Page précédente"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+
+                <span className="px-1 text-xs font-medium text-[hsl(var(--muted-foreground))]">
+                  {pagination.pageIndex + 1} / {data?.totalPages ?? 1}
+                </span>
+
+                <button
+                  type="button"
+                  disabled={!table.getCanNextPage()}
+                  onClick={() => {
+                    table.nextPage()
+                  }}
+                  className="flex h-7 w-7 items-center justify-center rounded-[var(--radius-sm)] border border-[hsl(var(--border))] bg-[hsl(var(--card))] transition-colors hover:bg-[hsl(var(--muted))] disabled:cursor-not-allowed disabled:opacity-40"
+                  aria-label="Page suivante"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </button>
               </div>
             </div>
-
-            {/* Navigation des pages (Chevrons) */}
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                disabled={!table.getCanPreviousPage()}
-                onClick={() => {
-                  table.previousPage()
-                }}
-                className="flex h-7 w-7 items-center justify-center rounded-[var(--radius-sm)] border border-[hsl(var(--border))] bg-[hsl(var(--card))] transition-colors hover:bg-[hsl(var(--muted))] disabled:cursor-not-allowed disabled:opacity-40"
-                aria-label="Page précédente"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </button>
-
-              <span className="px-1 text-xs font-medium text-[hsl(var(--muted-foreground))]">
-                {pagination.pageIndex + 1} / {data?.totalPages ?? 1}
-              </span>
-
-              <button
-                type="button"
-                disabled={!table.getCanNextPage()}
-                onClick={() => {
-                  table.nextPage()
-                }}
-                className="flex h-7 w-7 items-center justify-center rounded-[var(--radius-sm)] border border-[hsl(var(--border))] bg-[hsl(var(--card))] transition-colors hover:bg-[hsl(var(--muted))] disabled:cursor-not-allowed disabled:opacity-40"
-                aria-label="Page suivante"
-              >
-                <ChevronRight className="h-4 w-4" />
-              </button>
-            </div>
           </div>
-        </div>
+        )}
+      </div>
+      {resetPasswordUser && (
+        <ResetPasswordModal
+          user={resetPasswordUser}
+          onClose={() => {
+            setResetPasswordUser(null)
+          }}
+        />
       )}
-    </div>
+    </>
   )
 }

@@ -1,10 +1,9 @@
-export type AuditAction =
-  'create' | 'update' | 'delete' | 'activate' | 'deactivate' | 'login' | 'logout'
+export type AuditAction = string
 
 export interface AuditLog {
   id: string
-  action: AuditAction
-  entity: string // ex: "User", "Role"
+  action: string // au lieu de AuditAction
+  entity: string
   entityId: string
   userId: string
   userName: string

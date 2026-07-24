@@ -10,6 +10,7 @@ export interface CreateUserInput {
   roleId: string;
   password?: string;
   permissionIds?: string[];
+  agenceId?: string | null;
 }
 
 export interface UpdateUserInput {
@@ -20,6 +21,7 @@ export interface UpdateUserInput {
   roleId?: string;
   mustChangePassword?: boolean;
   permissionIds?: string[];
+  agenceId?: string | null;
 }
 
 export interface UpdateUserStatusInput {
@@ -31,6 +33,7 @@ export interface UserQueryParams {
   limit: number;
   search?: string;
   roleId?: string;
+  agenceId?: string;
   actif?: boolean;
   sortBy?: string;
   sortOrder?: "asc" | "desc";

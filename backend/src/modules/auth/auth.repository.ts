@@ -1,5 +1,4 @@
 import { prisma } from "../../config/prisma.js";
-import bcrypt from "bcryptjs";
 import crypto from "crypto";
 
 const userWithPermissionsInclude = {
@@ -13,6 +12,7 @@ const userWithPermissionsInclude = {
   permissions: {
     include: { permission: true },
   },
+  agence: true,
 };
 
 export const authRepository = {
@@ -74,7 +74,6 @@ export const authRepository = {
   },
 
   async hashToken(token: string): Promise<string> {
-    // return bcrypt.hash(token, 10);
     return crypto.createHash("sha256").update(token).digest("hex");
   },
 };

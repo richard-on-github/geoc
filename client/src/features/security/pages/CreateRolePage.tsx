@@ -37,6 +37,8 @@ export function CreateRolePage() {
     })
   }
 
+  const formErrors = errors as Record<string, { message?: string }>
+
   return (
     <div className="container mx-auto max-w-4xl py-6">
       <button
@@ -78,6 +80,34 @@ export function CreateRolePage() {
               {...register('code')}
             />
           </Field>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Field id="dataScope" label="Scope" error={formErrors['dataScope']?.message}>
+              <select
+                id="dataScope"
+                className={inputClass}
+                aria-invalid={!!formErrors['dataScope']}
+                disabled={isPending}
+                {...register('dataScope')}
+              >
+                <option value="GLOBAL">Global</option>
+                <option value="AGENCE">Agence</option>
+              </select>
+            </Field>
+
+            <Field id="niveau" label="Niveau" error={formErrors['niveau']?.message}>
+              <input
+                id="niveau"
+                type="number"
+                min="0"
+                step="1"
+                className={inputClass}
+                aria-invalid={!!formErrors['niveau']}
+                disabled={isPending}
+                {...register('niveau', { valueAsNumber: true })}
+              />
+            </Field>
+          </div>
 
           <Field
             id="description"

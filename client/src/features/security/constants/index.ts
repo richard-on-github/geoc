@@ -23,4 +23,5 @@ export const RESOURCE_LABELS: Record<string, string> = {
   caisse: 'Caisse',
   garantie: 'Garantie',
   ts10: 'TS10',
+  vente: 'Ventes',
 }

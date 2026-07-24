@@ -25,6 +25,17 @@ enum AuditAction {
   DECONNEXION
 }
 
+enum DataScope {
+  GLOBAL
+  AGENCE
+}
+
+enum TypeImport {
+  MANUEL
+  EMAIL
+  API
+}
+
 model User {
   id String @id @default(cuid())
 
@@ -46,13 +57,18 @@ model User {
 
   actif Boolean @default(true)
 
+  agenceId String?
+  agence   Agence? @relation(fields: [agenceId], references: [id])
+
+  imports VenteImportLog[]
+
   refreshTokens RefreshToken[]
 
   audits AuditLog[]
 
   lastLoginAt DateTime?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 }
 
 model RefreshToken {
@@ -89,6 +105,9 @@ model AuditLog {
 
   user User? @relation(fields: [userId], references: [id])
 
+  agenceId String?
+  agence   Agence? @relation(fields: [agenceId], references: [id])
+
   ip String?
 
   before Json?
@@ -109,9 +128,13 @@ model Role {
 
   description String?
 
+  niveau Int
+
   isSystem Boolean @default(false)
 
   actif Boolean @default(true)
+
+  dataScope DataScope @default(AGENCE)
 
   users User[]
 
@@ -160,4 +183,66 @@ model UserPermission {
   permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
 
   @@id([userId, permissionId])
+}
+
+model Agence {
+  id        String  @id @default(cuid())
+  nom       String
+  code      String  @unique
+  adresse   String?
+  telephone String?
+  email     String?
+  actif     Boolean @default(true)
+
+  users  User[]
+  ventes Vente[]
+  audits AuditLog[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model VenteImportLog {
+  id         String     @id @default(cuid())
+  fileHash   String     @unique
+  nomFichier String?
+  typeImport TypeImport @default(MANUEL)
+  lignes     Int        @default(0)
+
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id])
+
+  ventes Vente[]
+
+  createdAt DateTime @default(now())
+}
+
+model Vente {
+  id String @id @default(cuid())
+
+  agenceId  String?
+  agence    Agence? @relation(fields: [agenceId], references: [id])
+  agenceNom String?
+
+  kiosque    String
+  agent      String
+  banque     String?
+  numeroTS10 String
+
+  totalVente Decimal @default(0.00) @db.Decimal(15, 2)
+  totalPaye  Decimal @default(0.00) @db.Decimal(15, 2)
+  totalSolde Decimal @default(0.00) @db.Decimal(15, 2)
+
+  dateDebut DateTime
+  dateFin   DateTime
+
+  importId  String?
+  importLog VenteImportLog? @relation(fields: [importId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([agenceId])
+  @@index([dateDebut, dateFin])
+  @@index([numeroTS10])
 }

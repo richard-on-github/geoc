@@ -12,13 +12,15 @@ import {
   userIdParamsSchema,
 } from "./user.schema.js";
 import { ROUTES } from "../../constants/routes.js";
+import { initRequestContext } from "../../middlewares/context.middleware.js";
 
 const router = Router();
 
 router.use(authenticate());
+router.use(initRequestContext());
 
 router.get(
-  "/",
+  ROUTES.USERS.ROOT,
   requirePermissions("user.read"),
   validate({ query: userQuerySchema }),
   asyncHandler(userController.findAll),
@@ -32,7 +34,7 @@ router.get(
 );
 
 router.post(
-  "/",
+  ROUTES.USERS.ROOT,
   requirePermissions("user.create"),
   validate({ body: createUserSchema }),
   asyncHandler(userController.create),

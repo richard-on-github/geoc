@@ -7,11 +7,9 @@ import type { ChangePasswordPayload } from '../types'
 export function useChangePassword() {
   return useMutation({
     mutationFn: (payload: ChangePasswordPayload) => authApi.changePassword(payload),
-
     onSuccess: () => {
       toast.success('Mot de passe modifié avec succès.')
     },
-
     onError: (error) => {
       if (error instanceof ApiError) {
         if (error.status === 400) {

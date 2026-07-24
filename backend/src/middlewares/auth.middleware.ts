@@ -3,7 +3,6 @@ import { verifyAccessToken } from "../utils/jwt.js";
 import { prisma } from "../config/prisma.js";
 import { ApiError } from "../utils/ApiError.js";
 import { MESSAGES } from "../constants/messages.js";
-import { HTTP_STATUS } from "../constants/http-status.js";
 
 export function authenticate() {
   return async (req: Request, _res: Response, next: NextFunction) => {
@@ -20,9 +19,23 @@ export function authenticate() {
 
       const payload = verifyAccessToken(token);
 
+      // 1. Requête 100% alignée sur votre véritable schéma Prisma
       const user = await prisma.user.findUnique({
         where: { id: payload.sub },
-        select: { id: true, role: true, actif: true },
+        select: {
+          id: true,
+          actif: true,
+          agenceId: true, // INDISPENSABLE pour requireDataScope
+          role: {
+            select: {
+              id: true,
+              nom: true, // Ex: "ADMIN", "CHEF_AGENCE", etc.
+              niveau: true,
+              dataScope: true, // Le vrai nom de la colonne dans votre BD !
+              isSystem: true,
+            },
+          },
+        },
       });
 
       if (!user || !user.actif) {
@@ -31,18 +44,18 @@ export function authenticate() {
         );
       }
 
+      // 2. Hydratation propre et légère de req.user
       req.user = {
         id: user.id,
-        role: user.role as any, // Rôle de l'énumération
+        agenceId: user.agenceId,
+        role: user.role, // Contient { id, nom, dataScope, isSystem }
       };
 
       next();
     } catch (error) {
-      // Si c'est une ApiError, on la passe directement
       if (error instanceof ApiError) {
         return next(error);
       }
-      // Gestion des erreurs JWT spécifiques
       if (error instanceof Error) {
         if (error.name === "TokenExpiredError") {
           return next(ApiError.unauthorized(MESSAGES.TOKEN_EXPIRED));

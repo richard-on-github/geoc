@@ -1,3 +1,5 @@
+import { Role } from "../../constants/roles.js";
+
 export interface LoginInput {
   email: string;
   password: string;

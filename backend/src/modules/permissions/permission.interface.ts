@@ -3,3 +3,7 @@ export interface PermissionQueryParams {
   limit: number;
   search?: string;
 }
+
+export interface PermissionAllQueryParams {
+  search?: string;
+}

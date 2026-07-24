@@ -1,12 +1,24 @@
-import { Role } from "../constants/roles.js";
-
-declare global {
-  namespace Express {
-    interface Request {
-      user?: {
+declare module "express-serve-static-core" {
+  interface Request {
+    user?: {
+      id: string;
+      agenceId: string | null;
+      role: {
         id: string;
-        role: Role;
+        nom: string;
+        niveau:number;
+        dataScope: string;
+        isSystem: boolean;
       };
-    }
+      // dataScope: "GLOBAL" | "AGENCE";
+
+      permissions?: string[];
+    };
+
+    dataScopeWhere?: {
+      agenceId?: string;
+    };
   }
 }
+
+export {};

@@ -33,10 +33,7 @@ export function LoginForm() {
 
       {/* Email */}
       <div className="space-y-1.5">
-        <label
-          htmlFor="email"
-          className="block text-sm font-medium text-[hsl(var(--foreground))]"
-        >
+        <label htmlFor="email" className="block text-sm font-medium text-[hsl(var(--foreground))]">
           Adresse email
         </label>
         <input
@@ -47,7 +44,7 @@ export function LoginForm() {
           aria-describedby={errors.email ? 'email-error' : undefined}
           aria-invalid={errors.email !== undefined}
           disabled={isPending}
-          className="w-full rounded-[var(--radius)] border border-[hsl(var(--input))] bg-[hsl(var(--background))] px-3 py-2 text-sm text-[hsl(var(--foreground))] placeholder:text-[hsl(var(--muted-foreground))] focus:outline-none focus:ring-2 focus:ring-[hsl(var(--ring))] focus:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-[hsl(var(--destructive))]"
+          className="w-full rounded-[var(--radius)] border border-[hsl(var(--input))] bg-[hsl(var(--background))] px-3 py-2 text-sm text-[hsl(var(--foreground))] placeholder:text-[hsl(var(--muted-foreground))] focus:ring-2 focus:ring-[hsl(var(--ring))] focus:ring-offset-1 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-[hsl(var(--destructive))]"
           placeholder="exemple@lonato.tg"
           {...register('email')}
         />
@@ -67,12 +64,6 @@ export function LoginForm() {
           >
             Mot de passe
           </label>
-          <a
-            href="/reset-password"
-            className="text-xs text-[hsl(var(--primary))] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] rounded"
-          >
-            Mot de passe oublié ?
-          </a>
         </div>
         <div className="relative">
           <input
@@ -82,15 +73,17 @@ export function LoginForm() {
             aria-describedby={errors.password ? 'password-error' : undefined}
             aria-invalid={errors.password !== undefined}
             disabled={isPending}
-            className="w-full rounded-[var(--radius)] border border-[hsl(var(--input))] bg-[hsl(var(--background))] px-3 py-2 pr-10 text-sm text-[hsl(var(--foreground))] placeholder:text-[hsl(var(--muted-foreground))] focus:outline-none focus:ring-2 focus:ring-[hsl(var(--ring))] focus:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-[hsl(var(--destructive))]"
+            className="w-full rounded-[var(--radius)] border border-[hsl(var(--input))] bg-[hsl(var(--background))] px-3 py-2 pr-10 text-sm text-[hsl(var(--foreground))] placeholder:text-[hsl(var(--muted-foreground))] focus:ring-2 focus:ring-[hsl(var(--ring))] focus:ring-offset-1 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-[hsl(var(--destructive))]"
             placeholder="••••••••"
             {...register('password')}
           />
           <button
             type="button"
             aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
-            onClick={() => setShowPassword((v) => !v)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] focus-visible:outline-none"
+            onClick={() => {
+              setShowPassword((v) => !v)
+            }}
+            className="absolute top-1/2 right-3 -translate-y-1/2 text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] focus-visible:outline-none"
           >
             {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
           </button>
@@ -106,7 +99,7 @@ export function LoginForm() {
       <button
         type="submit"
         disabled={isPending}
-        className="w-full flex items-center justify-center gap-2 rounded-[var(--radius)] bg-[hsl(var(--primary))] px-4 py-2.5 text-sm font-medium text-[hsl(var(--primary-foreground))] transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+        className="flex w-full items-center justify-center gap-2 rounded-[var(--radius)] bg-[hsl(var(--primary))] px-4 py-2.5 text-sm font-medium text-[hsl(var(--primary-foreground))] transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60"
       >
         {isPending && <Loader2 size={16} className="animate-spin" aria-hidden="true" />}
         {isPending ? 'Connexion...' : 'Se connecter'}
