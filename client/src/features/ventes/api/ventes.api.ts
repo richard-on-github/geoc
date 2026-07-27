@@ -1,5 +1,5 @@
 import { axiosInstance } from '@/shared/api'
-import type { ApiResponse, ApiPaginatedResponse, ListParams } from '@/shared/types'
+import type { ApiResponse, ApiPaginatedResponse } from '@/shared/types'
 import type { Vente, VenteQueryParams } from '../types'
 
 const BASE_URL = '/ventes'
@@ -52,7 +52,6 @@ export const ventesApi = {
     }
   },
 
-  // Import : envoi d'un fichier (multipart/form-data)
   async importVentes(file: File): Promise<void> {
     const formData = new FormData()
     formData.append('file', file)
@@ -63,7 +62,13 @@ export const ventesApi = {
     })
   },
 
-  async exportVentes(params: VenteQueryParams, format: 'csv' | 'excel' | 'pdf'): Promise<void> {
+  /**
+   * Télécharge l'archive zip cryptée et retourne le mot de passe de déchiffrement.
+   */
+  async exportVentes(
+    params: VenteQueryParams,
+    format: 'csv' | 'excel' | 'pdf',
+  ): Promise<string | null> {
     const queryString = new URLSearchParams(
       Object.fromEntries(
         Object.entries(params)
@@ -74,26 +79,28 @@ export const ventesApi = {
 
     const url = `${BASE_URL}/export/${format}?${queryString}`
 
-    // 1. Récupérer le blob avec axios (inclut les headers d'authentification)
     const response = await axiosInstance.get(url, {
       responseType: 'blob',
     })
 
-    // 2. Vérifier si la réponse est bien un fichier (et non une page d'erreur HTML)
     const contentType = response.headers['content-type'] || ''
-    if (contentType.includes('text/html')) {
-      // Si le backend renvoie une erreur sous forme HTML, on la rejette
-      throw new Error("Erreur lors de l'export : réponse HTML inattendue.")
+    if (contentType.includes('text/html') || contentType.includes('application/json')) {
+      throw new Error("Erreur lors de l'export : réponse inattendue.")
     }
 
-    // 3. Créer un lien de téléchargement à partir du blob
-    const blob = new Blob([response.data], { type: contentType })
+    // Extraction du mot de passe envoyé par le backend dans l'en-tête
+    const exportPassword = (response.headers['x-export-password'] as string) || null
+
+    // Téléchargement du fichier .zip
+    const blob = new Blob([response.data], { type: 'application/zip' })
     const link = document.createElement('a')
     link.href = URL.createObjectURL(blob)
-    link.download = `export_ventes_${new Date().getTime()}.${format === 'excel' ? 'xlsx' : format}`
+    link.download = `export_ventes_${new Date().getTime()}.zip`
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
     URL.revokeObjectURL(link.href)
+
+    return exportPassword
   },
 }

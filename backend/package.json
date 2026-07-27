@@ -19,6 +19,7 @@
     "@types/mailparser": "^3.4.6",
     "@types/multer": "^2.2.0",
     "@types/node": "^25.9.3",
+    "@types/node-7z": "^2.1.11",
     "@types/node-cron": "^3.0.11",
     "@types/pdfmake": "^0.3.3",
     "dotenv": "^17.4.2",
@@ -31,6 +32,7 @@
   "dependencies": {
     "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7.8.0",
+    "7zip-bin": "^5.2.0",
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.6",
     "express": "^5.2.1",
@@ -38,6 +40,7 @@
     "jsonwebtoken": "^9.0.3",
     "mailparser": "^3.9.14",
     "multer": "^2.2.0",
+    "node-7z": "^3.0.0",
     "node-cron": "^4.6.0",
     "pdfmake": "^0.3.11",
     "xlsx": "^0.18.5",

@@ -172,12 +172,20 @@ export const permissionsData: readonly PermissionItem[] = [
             "Permet d'intégrer des flux de ventes (via fichiers Excel/CSV ou synchronisation IMAP).",
     },
     {
-        code: "vente.export",
-        nom: "Exporter des ventes",
-        description:
-            "Permet de générer des rapports d'export des ventes au format CSV, Excel ou PDF.",
+        code: "vente.export.csv",
+        nom: "Exporter les ventes (CSV)",
+        description: "Permet de générer des rapports d'export des ventes au format CSV.",
     },
-
+    {
+        code: "vente.export.excel",
+        nom: "Exporter les ventes (Excel)",
+        description: "Permet de générer des rapports d'export des ventes au format Excel.",
+    },
+    {
+        code: "vente.export.pdf",
+        nom: "Exporter les ventes (PDF)",
+        description: "Permet de générer des rapports d'export des ventes au format PDF.",
+    },
     {
         code: "dashboard.read",
         nom: "Consulter le tableau de bord",

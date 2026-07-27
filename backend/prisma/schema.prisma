@@ -128,7 +128,7 @@ model Role {
 
   description String?
 
-  niveau Int
+  niveau Int @default(1)
 
   isSystem Boolean @default(false)
 

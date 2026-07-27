@@ -40,21 +40,57 @@ export const venteService = {
       );
     }
 
-    // Extraction du contexte utilisateur pour la sécurité de l'import
     const ctx = contextStorage.getStore();
     const isScopedAgence = ctx?.dataScope === "AGENCE" && ctx?.agenceId;
 
-    // Récupération du mapping mémoire des agences
-    const agences = await prisma.agence.findMany({
+    let agences = await prisma.agence.findMany({
       where: { actif: true },
       select: { id: true, nom: true, code: true },
     });
 
-    const agenceMap = new Map<string, string>();
+    let agenceMap = new Map<string, string>();
     agences.forEach((a) => {
       agenceMap.set(a.nom.trim().toLowerCase(), a.id);
       agenceMap.set(a.code.trim().toLowerCase(), a.id);
     });
+
+    if (!isScopedAgence) {
+      const missingAgences = new Set<string>();
+
+      parsedRows.forEach((row) => {
+        const searchKey = row.agenceNomBrut.trim().toLowerCase();
+        if (!agenceMap.has(searchKey)) {
+          missingAgences.add(row.agenceNomBrut.trim());
+        }
+      });
+
+      if (missingAgences.size > 0) {
+        const newAgencesData = Array.from(missingAgences).map((nom) => {
+          const randomSuffix = crypto.randomBytes(3).toString("hex").toUpperCase();
+          return {
+            nom,
+            code: `AG-AUTO-${randomSuffix}`,
+            actif: true,
+          };
+        });
+
+        await prisma.agence.createMany({
+          data: newAgencesData,
+          skipDuplicates: true,
+        });
+
+        agences = await prisma.agence.findMany({
+          where: { actif: true },
+          select: { id: true, nom: true, code: true },
+        });
+
+        agenceMap.clear();
+        agences.forEach((a) => {
+          agenceMap.set(a.nom.trim().toLowerCase(), a.id);
+          agenceMap.set(a.code.trim().toLowerCase(), a.id);
+        });
+      }
+    }
 
     // SÉCURITÉ : Préparation des données avec forçage de périmètre
     const ventesData = parsedRows.map((row) => {

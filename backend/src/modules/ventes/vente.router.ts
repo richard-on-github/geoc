@@ -31,10 +31,24 @@ router.post(
 );
 
 router.get(
-  ROUTES.VENTE.EXPORT,
-  requirePermissions("vente.export"),
-  validate({ query: venteQuerySchema }),
-  asyncHandler(venteExportController.export),
+    "/export/csv",
+    requirePermissions("vente.export.csv"),
+    validate({ query: venteQuerySchema }),
+    asyncHandler(venteExportController.export)
+);
+
+router.get(
+    "/export/excel",
+    requirePermissions("vente.export.excel"),
+    validate({ query: venteQuerySchema }),
+    asyncHandler(venteExportController.export)
+);
+
+router.get(
+    "/export/pdf",
+    requirePermissions("vente.export.pdf"),
+    validate({ query: venteQuerySchema }),
+    asyncHandler(venteExportController.export)
 );
 
 export { router as venteRouter };
