@@ -8,6 +8,7 @@ export const VENTE_QUERY_KEYS = {
   all: ['ventes'] as const,
   lists: () => [...VENTE_QUERY_KEYS.all, 'list'] as const,
   list: (params: object) => [...VENTE_QUERY_KEYS.lists(), params] as const,
+  clotures: () => [...VENTE_QUERY_KEYS.all, 'clotures'] as const,
 }
 
 export function useVentes(params: VenteQueryParams) {
@@ -27,8 +28,29 @@ export function useImportVentes() {
       toast.success('Import des ventes réussi.')
     },
     onError: (error) => {
-      toast.error(error instanceof ApiError ? error.message : 'Erreur lors de l\'import.')
+      toast.error(error instanceof ApiError ? error.message : "Erreur lors de l'import.")
     },
   })
 }
 
+export function useClotures() {
+  return useQuery({
+    queryKey: VENTE_QUERY_KEYS.clotures(),
+    queryFn: () => ventesApi.getClotures(),
+  })
+}
+
+export function useCloturerMois() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (periode: string) => ventesApi.cloturerMois(periode),
+    onSuccess: (data) => {
+      void qc.invalidateQueries({ queryKey: VENTE_QUERY_KEYS.lists() })
+      void qc.invalidateQueries({ queryKey: VENTE_QUERY_KEYS.clotures() })
+      toast.success(`La période ${data.periode} a été clôturée avec succès.`)
+    },
+    onError: (error) => {
+      toast.error(error instanceof ApiError ? error.message : 'Erreur lors de la clôture.')
+    },
+  })
+}

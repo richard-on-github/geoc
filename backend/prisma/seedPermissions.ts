@@ -1,4 +1,4 @@
-import {prisma} from "../src/config/prisma.js";
+import { prisma } from "../src/config/prisma.js";
 
 export interface PermissionItem {
     code: string;
@@ -124,7 +124,6 @@ export const permissionsData: readonly PermissionItem[] = [
         description: "Permet de retirer ou de désactiver une agence du système.",
     },
 
-
     {
         code: "caisse.create",
         nom: "Créer une caisse",
@@ -157,9 +156,6 @@ export const permissionsData: readonly PermissionItem[] = [
         description: "Permet de modifier ou de restructurer un document TS10.",
     },
 
-    // ==========================================
-    // MODULE : VENTES
-    // ==========================================
     {
         code: "vente.read",
         nom: "Consulter les ventes",
@@ -170,6 +166,11 @@ export const permissionsData: readonly PermissionItem[] = [
         nom: "Importer des ventes",
         description:
             "Permet d'intégrer des flux de ventes (via fichiers Excel/CSV ou synchronisation IMAP).",
+    },
+    {
+        code: "vente.cloture",
+        nom: "Clôturer les ventes",
+        description: "Permet de valider et clôturer manuellement les ventes d'une période mensuelle.",
     },
     {
         code: "vente.export.csv",
@@ -194,7 +195,7 @@ export const permissionsData: readonly PermissionItem[] = [
 ] as const;
 
 export async function seedPermissions(): Promise<void> {
-    console.log(`🚀 Début de la synchronisation de ${permissionsData.length} permissions...`);
+    console.log(`Début de la synchronisation de ${permissionsData.length} permissions...`);
     const startTime = Date.now();
 
     try {

@@ -9,6 +9,8 @@ export function VentesListPage() {
     agenceId: '',
     dateDebut: '',
     dateFin: '',
+    clotureId: '',
+    nonClotureesOnly: false,
   })
 
   const handleFilterChange = useCallback((newFilters: typeof filters) => {

@@ -56,6 +56,8 @@ export const ROUTES = {
     BASE: "/api/ventes",
     ROOT: "/",
     IMPORT: "/import",
+    CLOTURER: "/cloturer",
+    CLOTURES: "/clotures",
     EXPORT: "/export/:format",
   },
 } as const;

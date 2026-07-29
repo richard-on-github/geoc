@@ -7,7 +7,7 @@ import { requirePermissions } from "../../middlewares/permission.middleware.js";
 import { initRequestContext } from "../../middlewares/context.middleware.js";
 import { validate } from "../../middlewares/validate.middleware.js";
 import { asyncHandler } from "../../utils/asyncHandler.js";
-import { venteQuerySchema } from "./vente.schema.js";
+import {cloturerVenteSchema, venteQuerySchema} from "./vente.schema.js";
 import { ROUTES } from "../../constants/routes.js";
 
 const router = Router();
@@ -28,6 +28,19 @@ router.post(
   requirePermissions("vente.import"),
   upload.single("file"),
   asyncHandler(venteController.importFile),
+);
+
+router.post(
+    ROUTES.VENTE.CLOTURER,
+    requirePermissions("vente.cloture"),
+    validate({ body: cloturerVenteSchema }),
+    asyncHandler(venteController.cloturer)
+);
+
+router.get(
+    ROUTES.VENTE.CLOTURES,
+    requirePermissions("vente.read"),
+    asyncHandler(venteController.getClotures)
 );
 
 router.get(

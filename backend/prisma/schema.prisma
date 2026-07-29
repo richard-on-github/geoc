@@ -62,6 +62,8 @@ model User {
 
   imports VenteImportLog[]
 
+  ventesCloturees VenteCloture[]
+
   refreshTokens RefreshToken[]
 
   audits AuditLog[]
@@ -224,6 +226,9 @@ model Vente {
   agence    Agence? @relation(fields: [agenceId], references: [id])
   agenceNom String?
 
+  clotureId   String?
+  cloture     VenteCloture? @relation(fields: [clotureId], references: [id])
+
   kiosque    String
   agent      String
   banque     String?
@@ -245,4 +250,30 @@ model Vente {
   @@index([agenceId])
   @@index([dateDebut, dateFin])
   @@index([numeroTS10])
+}
+
+enum StatutCloture {
+  OUVERT
+  CLOTURE
+}
+
+model VenteCloture {
+  id           String        @id @default(cuid())
+  periode      String        @unique // ex: "2026-07"
+  dateDebut    DateTime
+  dateFin      DateTime
+  dateCloture  DateTime      @default(now())
+
+  totalVentes  Decimal       @db.Decimal(12, 2)
+  totalPayes   Decimal       @db.Decimal(12, 2)
+  totalSoldes  Decimal       @db.Decimal(12, 2)
+  nbLignes     Int
+
+  clotureParId String
+  cloturePar   User          @relation(fields: [clotureParId], references: [id])
+
+  ventes       Vente[]
+
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
 }

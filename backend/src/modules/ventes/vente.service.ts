@@ -144,4 +144,76 @@ export const venteService = {
 
     return result;
   },
+
+  async cloturerMois(periode: string, actorId: string, ip?: string) {
+    const existingCloture = await prisma.venteCloture.findUnique({
+      where: { periode },
+    });
+
+    if (existingCloture) {
+      throw ApiError.badRequest(`La période ${periode} a déjà été clôturée.`);
+    }
+
+    const ventesACloturer = await prisma.vente.findMany({
+      where: { clotureId: null },
+    });
+
+    if (ventesACloturer.length === 0) {
+      throw ApiError.badRequest("Aucune vente à clôturer pour cette période.");
+    }
+
+    const totalVentes = ventesACloturer.reduce((sum, v) => sum + Number(v.totalVente), 0);
+    const totalPayes = ventesACloturer.reduce((sum, v) => sum + Number(v.totalPaye), 0);
+    const totalSoldes = ventesACloturer.reduce((sum, v) => sum + Number(v.totalSolde), 0);
+
+    const dateDebut = ventesACloturer.reduce(
+        (min, v) => (v.dateDebut < min ? v.dateDebut : min),
+        ventesACloturer[0].dateDebut
+    );
+    const dateFin = ventesACloturer.reduce(
+        (max, v) => (v.dateFin > max ? v.dateFin : max),
+        ventesACloturer[0].dateFin
+    );
+
+    const result = await prisma.$transaction(async (tx) => {
+      const cloture = await tx.venteCloture.create({
+        data: {
+          periode,
+          dateDebut,
+          dateFin,
+          totalVentes,
+          totalPayes,
+          totalSoldes,
+          nbLignes: ventesACloturer.length,
+          clotureParId: actorId,
+        },
+      });
+
+      await tx.vente.updateMany({
+        where: { clotureId: null },
+        data: { clotureId: cloture.id },
+      });
+
+      return cloture;
+    });
+
+    // 5. Audit Log
+    await logAudit({
+      action: AuditAction.CREATION,
+      entity: "VenteCloture",
+      entityId: result.id,
+      userId: actorId,
+      ip: ip ?? "",
+      message: `Clôture mensuelle effectuée pour la période ${periode} (${result.nbLignes} ventes).`,
+    });
+
+    return result;
+  },
+
+  async getClotures() {
+    return prisma.venteCloture.findMany({
+      include: { cloturePar: { select: { nom: true, prenom: true, email: true } } },
+      orderBy: { dateCloture: "desc" },
+    });
+  }
 };

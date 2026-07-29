@@ -7,7 +7,16 @@ import {
   type PaginationState,
 } from '@tanstack/react-table'
 import { useState, useMemo, useEffect } from 'react'
-import { ArrowUpDown, ArrowUp, ArrowDown, ChevronLeft, ChevronRight, Receipt } from 'lucide-react'
+import {
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+  ChevronLeft,
+  ChevronRight,
+  Receipt,
+  Lock,
+  Unlock,
+} from 'lucide-react'
 import { useVentes } from '../hooks'
 import { EmptyState } from '@/shared/components/feedback/EmptyState'
 import { cn } from '@/shared/lib'
@@ -20,6 +29,8 @@ interface VentesTableProps {
     agenceId?: string
     dateDebut?: string
     dateFin?: string
+    clotureId?: string
+    nonClotureesOnly?: boolean
   }
 }
 
@@ -29,10 +40,16 @@ export function VentesTable({ filters }: VentesTableProps) {
   const [sorting, setSorting] = useState<SortingState>([])
   const [pagination, setPagination] = useState<PaginationState>({ pageIndex: 0, pageSize: 20 })
 
-  // Réinitialiser la page quand les filtres changent
   useEffect(() => {
     setPagination((p) => ({ ...p, pageIndex: 0 }))
-  }, [filters.search, filters.agenceId, filters.dateDebut, filters.dateFin])
+  }, [
+    filters.search,
+    filters.agenceId,
+    filters.dateDebut,
+    filters.dateFin,
+    filters.clotureId,
+    filters.nonClotureesOnly,
+  ])
 
   const queryParams = useMemo(
     () => ({
@@ -42,6 +59,8 @@ export function VentesTable({ filters }: VentesTableProps) {
       agenceId: filters.agenceId || undefined,
       dateDebut: filters.dateDebut || undefined,
       dateFin: filters.dateFin || undefined,
+      clotureId: filters.clotureId || undefined,
+      nonClotureesOnly: filters.nonClotureesOnly || undefined,
       sortBy: sorting[0]?.id as 'dateDebut' | 'totalVente' | 'createdAt' | undefined,
       sortOrder:
         sorting[0] !== undefined
@@ -57,6 +76,19 @@ export function VentesTable({ filters }: VentesTableProps) {
 
   const columns = useMemo<ColumnDef<Vente>[]>(
     () => [
+      // --- NOUVELLE COLONNE : STATUT ---
+      {
+        id: 'statut',
+        header: '',
+        accessorKey: 'clotureId',
+        enableSorting: false,
+        cell: ({ row }) =>
+          row.original.clotureId ? (
+            <Lock size={16} className="mx-auto text-[hsl(var(--destructive))]" title="Clôturée" />
+          ) : (
+            <Unlock size={16} className="mx-auto text-green-500" title="Non clôturée" />
+          ),
+      },
       {
         id: 'agenceNom',
         header: 'Agence',
@@ -76,12 +108,6 @@ export function VentesTable({ filters }: VentesTableProps) {
         enableSorting: false,
       },
       {
-        id: 'banque',
-        header: 'Banque',
-        accessorKey: 'banque',
-        enableSorting: false,
-      },
-      {
         id: 'numeroTS10',
         header: 'N° TS10',
         accessorKey: 'numeroTS10',
@@ -89,7 +115,7 @@ export function VentesTable({ filters }: VentesTableProps) {
       },
       {
         id: 'totalVente',
-        header: 'Total Vente',
+        header: 'Vente',
         accessorKey: 'totalVente',
         enableSorting: true,
         cell: ({ row }) => (
@@ -98,7 +124,7 @@ export function VentesTable({ filters }: VentesTableProps) {
       },
       {
         id: 'totalPaye',
-        header: 'Total Payé',
+        header: 'Payé',
         accessorKey: 'totalPaye',
         enableSorting: false,
         cell: ({ row }) => formatCurrency(row.original.totalPaye),
@@ -121,18 +147,8 @@ export function VentesTable({ filters }: VentesTableProps) {
         enableSorting: true,
         cell: ({ row }) => (
           <span className="text-sm text-[hsl(var(--muted-foreground))]">
-            {formatDateTime(row.original.dateDebut)} - {formatDateTime(row.original.dateFin)}
-          </span>
-        ),
-      },
-      {
-        id: 'createdAt',
-        header: 'Importé le',
-        accessorKey: 'createdAt',
-        enableSorting: true,
-        cell: ({ row }) => (
-          <span className="text-sm text-[hsl(var(--muted-foreground))]">
-            {formatDateTime(row.original.createdAt)}
+            {new Date(row.original.dateDebut).toLocaleDateString()} -{' '}
+            {new Date(row.original.dateFin).toLocaleDateString()}
           </span>
         ),
       },
@@ -279,7 +295,9 @@ export function VentesTable({ filters }: VentesTableProps) {
                   <button
                     key={size}
                     type="button"
-                    onClick={() => { setPagination({ pageIndex: 0, pageSize: size }); }}
+                    onClick={() => {
+                      setPagination({ pageIndex: 0, pageSize: size })
+                    }}
                     className={cn(
                       'h-7 min-w-[28px] rounded-[var(--radius-sm)] border border-[hsl(var(--border))] px-1.5 text-xs font-medium transition-colors hover:bg-[hsl(var(--muted))]',
                       pagination.pageSize === size
@@ -297,7 +315,9 @@ export function VentesTable({ filters }: VentesTableProps) {
               <button
                 type="button"
                 disabled={!table.getCanPreviousPage()}
-                onClick={() => { table.previousPage(); }}
+                onClick={() => {
+                  table.previousPage()
+                }}
                 className="flex h-7 w-7 items-center justify-center rounded-[var(--radius-sm)] border border-[hsl(var(--border))] bg-[hsl(var(--card))] transition-colors hover:bg-[hsl(var(--muted))] disabled:cursor-not-allowed disabled:opacity-40"
               >
                 <ChevronLeft className="h-4 w-4" />
@@ -308,7 +328,9 @@ export function VentesTable({ filters }: VentesTableProps) {
               <button
                 type="button"
                 disabled={!table.getCanNextPage()}
-                onClick={() => { table.nextPage(); }}
+                onClick={() => {
+                  table.nextPage()
+                }}
                 className="flex h-7 w-7 items-center justify-center rounded-[var(--radius-sm)] border border-[hsl(var(--border))] bg-[hsl(var(--card))] transition-colors hover:bg-[hsl(var(--muted))] disabled:cursor-not-allowed disabled:opacity-40"
               >
                 <ChevronRight className="h-4 w-4" />

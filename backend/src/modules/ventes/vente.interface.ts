@@ -3,8 +3,11 @@ export interface VenteQueryParams {
   limit: number;
   search?: string;
   agenceId?: string;
+  agenceNom?: string;
   dateDebut?: string;
   dateFin?: string;
+  clotureId?: string;
+  nonClotureesOnly?: boolean;
   sortBy?: "dateDebut" | "totalVente" | "createdAt";
   sortOrder?: "asc" | "desc";
 }

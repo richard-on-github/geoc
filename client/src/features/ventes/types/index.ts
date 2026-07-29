@@ -1,3 +1,22 @@
+export interface VenteCloture {
+  id: string
+  periode: string
+  dateDebut: string
+  dateFin: string
+  totalVentes: number
+  totalPayes: number
+  totalSoldes: number
+  nbLignes: number
+  clotureParId: string
+  cloturePar?: {
+    nom: string
+    prenom: string
+    email: string
+  }
+  createdAt: string
+  updatedAt: string
+}
+
 export interface Vente {
   id: string
   agenceId: string
@@ -12,6 +31,7 @@ export interface Vente {
   dateDebut: string
   dateFin: string
   importId: string
+  clotureId?: string | null
   createdAt: string
   updatedAt: string
   agence?: {
@@ -27,6 +47,8 @@ export interface VenteQueryParams {
   agenceId?: string
   dateDebut?: string
   dateFin?: string
+  clotureId?: string
+  nonClotureesOnly?: boolean
   sortBy?: 'dateDebut' | 'totalVente' | 'createdAt'
   sortOrder?: 'asc' | 'desc'
 }

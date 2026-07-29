@@ -9,8 +9,11 @@ export const venteRepository = {
       limit = 50,
       search,
       agenceId,
+      agenceNom,
       dateDebut,
       dateFin,
+      clotureId,
+      nonClotureesOnly,
       sortBy = "dateDebut",
       sortOrder = "desc",
     } = params;
@@ -27,13 +30,22 @@ export const venteRepository = {
     }
 
     if (agenceId) where.agenceId = agenceId;
+
+    if (agenceNom) where.agenceNom = agenceNom;
+
+    if (params.nonClotureesOnly) {
+      where.clotureId = null;
+    }
+
+    if (params.clotureId) {
+      where.clotureId = params.clotureId;
+    }
+
     if (dateDebut || dateFin) {
       where.dateDebut = {};
       if (dateDebut) where.dateDebut.gte = new Date(dateDebut);
       if (dateFin) where.dateDebut.lte = new Date(dateFin);
     }
-
-    // REMARQUE : Prisma.$extends injecte automatiquement le filtre agenceId en arrière-plan !
 
     const [ventes, total] = await Promise.all([
       prisma.vente.findMany({
