@@ -15,7 +15,7 @@ export async function seedUsers(prisma: PrismaClient): Promise<void> {
 
   if (!adminEmail || !adminPassword) {
     throw new Error(
-        "Les variables d'environnement ADMIN_EMAIL et ADMIN_PASSWORD sont requises pour créer le compte administrateur.",
+      "Les variables d'environnement ADMIN_EMAIL et ADMIN_PASSWORD sont requises pour créer le compte administrateur.",
     );
   }
 
@@ -31,6 +31,38 @@ export async function seedUsers(prisma: PrismaClient): Promise<void> {
 
     return id;
   };
+
+  const systemExists = await prisma.user.findUnique({
+    where: {
+      email: "system@geoc.com",
+    },
+  });
+
+  if (!systemExists) {
+    await prisma.user.create({
+      data: {
+        prenom: "Email",
+
+        nom: "Import Bot",
+
+        email: "system@geoc.com",
+
+        telephone: null,
+
+        passwordHash: await hashPassword(crypto.randomUUID()),
+
+        roleId: getRoleId("SYSTEM"),
+
+        actif: true,
+
+        mustChangePassword: false,
+
+        agenceId: null,
+      },
+    });
+
+    console.log("✓ Utilisateur SYSTEM créé");
+  }
 
   const adminExists = await prisma.user.findUnique({
     where: {
