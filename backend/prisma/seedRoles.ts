@@ -5,7 +5,9 @@ export async function seedRoles() {
   console.log("Début du seeding des rôles système...");
 
   const allPermissions = await prisma.permission.findMany();
-  const permMap = new Map(allPermissions.map((p) => [p.code, p.id]));
+  const permMap = new Map(
+    allPermissions.map((p: { id: string; code: string }) => [p.code, p.id]),
+  );
 
   const systemRoles = [
     {
@@ -24,7 +26,7 @@ export async function seedRoles() {
       nom: "Administrateur Système",
       dataScope: "GLOBAL",
       description: "Accès total et configuration de l'infrastructure",
-      allowedCodes: allPermissions.map((p) => p.code),
+      allowedCodes: allPermissions.map((p: { code: string }) => p.code),
     },
 
     {
@@ -120,8 +122,8 @@ export async function seedRoles() {
     });
 
     const permissions = sysRole.allowedCodes
-      .map((code) => permMap.get(code))
-      .filter((id): id is string => !!id);
+      .map((code: string) => permMap.get(code))
+      .filter((id: string | undefined): id is string => !!id);
 
     for (const permissionId of permissions) {
       await prisma.rolePermission.upsert({

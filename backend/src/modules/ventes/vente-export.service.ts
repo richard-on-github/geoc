@@ -12,10 +12,10 @@ import { fileURLToPath } from "url";
 const require = createRequire(import.meta.url);
 
 type ModuleWithDefault<T> = T | { default: T | { default: T } };
+type VenteExportData = Prisma.VenteGetPayload<{
+  include: { agence: { select: { nom: true; code: true } } };
+}>;
 
-/**
- * Extrait la vraie classe/fonction en dépilant les couches `.default` de l'import ESM/CJS
- */
 function unwrap<T>(moduleImport: unknown): T {
   if (
     moduleImport &&
@@ -193,12 +193,15 @@ export const venteExportService = {
     const ventes = await this.getExportData(params);
 
     const totalVentes = ventes.reduce(
-      (sum, v) => sum + Number(v.totalVente),
+      (sum: number, v: VenteExportData) => sum + Number(v.totalVente),
       0,
     );
-    const totalPayes = ventes.reduce((sum, v) => sum + Number(v.totalPaye), 0);
+    const totalPayes = ventes.reduce(
+      (sum: number, v: VenteExportData) => sum + Number(v.totalPaye),
+      0,
+    );
     const totalSoldes = ventes.reduce(
-      (sum, v) => sum + Number(v.totalSolde),
+      (sum: number, v: VenteExportData) => sum + Number(v.totalSolde),
       0,
     );
 
@@ -215,7 +218,7 @@ export const venteExportService = {
       "Date Fin",
     ];
 
-    const rows = ventes.map((v) => [
+    const rows = ventes.map((v: VenteExportData) => [
       v.agence?.nom || v.agenceNom || "",
       v.kiosque,
       v.agent,
@@ -242,7 +245,9 @@ export const venteExportService = {
     ]);
 
     return [headers, ...rows]
-      .map((e) => e.map((val) => `"${val.replace(/"/g, '""')}"`).join(","))
+      .map((e) =>
+        e.map((val: string) => `"${val.replace(/"/g, '""')}"`).join(","),
+      )
       .join("\n");
   },
 
@@ -250,16 +255,19 @@ export const venteExportService = {
     const ventes = await this.getExportData(params);
 
     const totalVentes = ventes.reduce(
-      (sum, v) => sum + Number(v.totalVente),
+      (sum: number, v: VenteExportData) => sum + Number(v.totalVente),
       0,
     );
-    const totalPayes = ventes.reduce((sum, v) => sum + Number(v.totalPaye), 0);
+    const totalPayes = ventes.reduce(
+      (sum: number, v: VenteExportData) => sum + Number(v.totalPaye),
+      0,
+    );
     const totalSoldes = ventes.reduce(
-      (sum, v) => sum + Number(v.totalSolde),
+      (sum: number, v: VenteExportData) => sum + Number(v.totalSolde),
       0,
     );
 
-    const data: VenteExcelRow[] = ventes.map((v) => ({
+    const data: VenteExcelRow[] = ventes.map((v: VenteExportData) => ({
       Agence: v.agence?.nom || v.agenceNom || "",
       Kiosque: v.kiosque,
       "Nom Agent": v.agent,
@@ -297,15 +305,15 @@ export const venteExportService = {
     const printer = createPdfPrinter(pdfFonts);
 
     const totalVenteGen = ventes.reduce(
-      (sum, v) => sum + Number(v.totalVente),
+      (sum: number, v: VenteExportData) => sum + Number(v.totalVente),
       0,
     );
     const totalPayeGen = ventes.reduce(
-      (sum, v) => sum + Number(v.totalPaye),
+      (sum: number, v: VenteExportData) => sum + Number(v.totalPaye),
       0,
     );
     const totalSoldeGen = ventes.reduce(
-      (sum, v) => sum + Number(v.totalSolde),
+      (sum: number, v: VenteExportData) => sum + Number(v.totalSolde),
       0,
     );
 
@@ -324,7 +332,7 @@ export const venteExportService = {
       ],
     ];
 
-    ventes.forEach((v) => {
+    ventes.forEach((v: VenteExportData) => {
       tableBody.push([
         { text: v.agence?.nom || v.agenceNom || "" },
         { text: v.kiosque },

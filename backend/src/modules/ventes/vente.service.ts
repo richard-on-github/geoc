@@ -2,7 +2,7 @@ import { venteRepository } from "./vente.repository.js";
 import { prisma } from "../../config/prisma.js";
 import { ApiError } from "../../utils/ApiError.js";
 import { logAudit } from "../../utils/audit.js";
-import { AuditAction, TypeImport, type Prisma } from "@prisma/client";
+import { AuditAction, TypeImport, Vente, type Prisma } from "@prisma/client";
 import crypto from "crypto";
 import type { VenteQueryParams, ParsedVenteRow } from "./vente.interface.js";
 import { getPaginationMeta } from "../../utils/pagination.js";
@@ -48,7 +48,7 @@ export const venteService = {
     });
 
     const agenceMap = new Map<string, string>();
-    agences.forEach((a) => {
+    agences.forEach((a: { id: string; nom: string; code: string }) => {
       agenceMap.set(a.nom.trim().toLowerCase(), a.id);
       agenceMap.set(a.code.trim().toLowerCase(), a.id);
     });
@@ -87,7 +87,7 @@ export const venteService = {
         });
 
         agenceMap.clear();
-        agences.forEach((a) => {
+        agences.forEach((a: { id: string; nom: string; code: string }) => {
           agenceMap.set(a.nom.trim().toLowerCase(), a.id);
           agenceMap.set(a.code.trim().toLowerCase(), a.id);
         });
@@ -160,48 +160,50 @@ export const venteService = {
     }
 
     const totalVentes = ventesACloturer.reduce(
-      (sum, v) => sum + Number(v.totalVente),
+      (sum: number, v: Vente) => sum + Number(v.totalVente),
       0,
     );
     const totalPayes = ventesACloturer.reduce(
-      (sum, v) => sum + Number(v.totalPaye),
+      (sum: number, v: Vente) => sum + Number(v.totalPaye),
       0,
     );
     const totalSoldes = ventesACloturer.reduce(
-      (sum, v) => sum + Number(v.totalSolde),
+      (sum: number, v: Vente) => sum + Number(v.totalSolde),
       0,
     );
 
     const dateDebut = ventesACloturer.reduce(
-      (min, v) => (v.dateDebut < min ? v.dateDebut : min),
+      (min: Date, v: Vente) => (v.dateDebut < min ? v.dateDebut : min),
       ventesACloturer[0].dateDebut,
     );
     const dateFin = ventesACloturer.reduce(
-      (max, v) => (v.dateFin > max ? v.dateFin : max),
+      (max: Date, v: Vente) => (v.dateFin > max ? v.dateFin : max),
       ventesACloturer[0].dateFin,
     );
 
-    const result = await prisma.$transaction(async (tx) => {
-      const cloture = await tx.venteCloture.create({
-        data: {
-          periode,
-          dateDebut,
-          dateFin,
-          totalVentes,
-          totalPayes,
-          totalSoldes,
-          nbLignes: ventesACloturer.length,
-          clotureParId: actorId,
-        },
-      });
+    const result = await prisma.$transaction(
+      async (tx: Prisma.TransactionClient) => {
+        const cloture = await tx.venteCloture.create({
+          data: {
+            periode,
+            dateDebut,
+            dateFin,
+            totalVentes,
+            totalPayes,
+            totalSoldes,
+            nbLignes: ventesACloturer.length,
+            clotureParId: actorId,
+          },
+        });
 
-      await tx.vente.updateMany({
-        where: { clotureId: null },
-        data: { clotureId: cloture.id },
-      });
+        await tx.vente.updateMany({
+          where: { clotureId: null },
+          data: { clotureId: cloture.id },
+        });
 
-      return cloture;
-    });
+        return cloture;
+      },
+    );
 
     await logAudit({
       action: AuditAction.CREATION,
