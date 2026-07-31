@@ -5,7 +5,8 @@
   "main": "src/server.ts",
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "start": "node dist/server.js",
+    "start": "start": "node dist/src/server.js",
+    "build": "tsc",
     "prisma": "prisma",
     "seed": "ts-node prisma/seed.ts"
   },
