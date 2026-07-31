@@ -2,11 +2,21 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "../../config/prisma.js";
 import type { DashboardQueryParams } from "./dashboard.interface.js";
 
+type DashboardItem = {
+  id: string;
+  totalVente: number;
+  kiosque: string;
+  agent: string;
+  _sum?: {
+    totalVente: number | null;
+    totalSolde: number | null;
+  } | null;
+  _count: {
+    id: number;
+  };
+};
+
 export const dashboardRepository = {
-  /**
-   * Construction dynamique du filtre WHERE combinant le Scope de sécurité
-   * et les filtres de date/agence de la requête.
-   */
   buildWhereClause(
     params: DashboardQueryParams,
     scopeWhere: Prisma.VenteWhereInput = {},
@@ -66,10 +76,10 @@ export const dashboardRepository = {
       take: limit,
     });
 
-    return result.map((item) => ({
+    return result.map((item: DashboardItem) => ({
       kiosque: item.kiosque,
-      totalVente: Number(item._sum.totalVente || 0),
-      totalSolde: Number(item._sum.totalSolde || 0),
+      totalVente: Number(item._sum?.totalVente ?? 0),
+      totalSolde: Number(item._sum?.totalSolde ?? 0),
       nombreVentes: item._count.id,
     }));
   },
@@ -92,9 +102,9 @@ export const dashboardRepository = {
       take: limit,
     });
 
-    return result.map((item) => ({
+    return result.map((item: DashboardItem) => ({
       agent: item.agent,
-      totalVente: Number(item._sum.totalVente || 0),
+      totalVente: Number(item._sum?.totalVente ?? 0),
       nombreVentes: item._count.id,
     }));
   },

@@ -1,5 +1,5 @@
 import * as xlsx from "xlsx";
-import type { TDocumentDefinitions } from "pdfmake/interfaces.js";
+import type { TDocumentDefinitions, TableCell } from "pdfmake/interfaces.js";
 import { prisma } from "../../config/prisma.js";
 import type { Prisma } from "@prisma/client";
 import type { VenteQueryParams } from "./vente.interface.js";
@@ -11,47 +11,77 @@ import { fileURLToPath } from "url";
 
 const require = createRequire(import.meta.url);
 
+type ModuleWithDefault<T> = T | { default: T | { default: T } };
+
 /**
  * Extrait la vraie classe/fonction en dépilant les couches `.default` de l'import ESM/CJS
  */
-function unwrap<T = any>(moduleImport: any): T {
+function unwrap<T>(moduleImport: unknown): T {
   if (
     moduleImport &&
     typeof moduleImport === "object" &&
+    "default" in moduleImport &&
     moduleImport.default
   ) {
-    return unwrap(moduleImport.default);
+    return unwrap<T>(moduleImport.default);
   }
-  return moduleImport;
+  return moduleImport as T;
 }
 
-// Chargement sécurisé des modules internes de pdfmake
-const PdfPrinterClass = unwrap(require("pdfmake/src/printer"));
+interface PdfPrinterInstance {
+  createPdfKitDocument(docDefinition: TDocumentDefinitions): PDFKit.PDFDocument;
+  urlResolver?: {
+    resolve: (url: string) => Promise<string>;
+  };
+}
 
-let VirtualFSClass: any = null;
+type PdfPrinterConstructor = new (
+  fonts: FontDescriptors,
+  vfs?: unknown,
+  urlResolver?: unknown,
+) => PdfPrinterInstance;
+
+const PdfPrinterClass = unwrap<PdfPrinterConstructor>(
+  require("pdfmake/src/printer"),
+);
+
+let VirtualFSClass: (new () => unknown) | null = null;
 try {
-  VirtualFSClass = unwrap(require("pdfmake/src/virtual-fs"));
+  VirtualFSClass = unwrap<new () => unknown>(require("pdfmake/src/virtual-fs"));
 } catch {
   VirtualFSClass = null;
 }
 
-let URLResolverClass: any = null;
+let URLResolverClass: (new (vfs?: unknown) => unknown) | null = null;
 try {
-  URLResolverClass = unwrap(require("pdfmake/src/urlResolver"));
+  URLResolverClass = unwrap<new (vfs?: unknown) => unknown>(
+    require("pdfmake/src/urlResolver"),
+  );
 } catch {
   URLResolverClass = null;
+}
+
+interface FontDescriptors {
+  [fontName: string]: {
+    normal: string;
+    bold?: string;
+    italics?: string;
+    bolditalics?: string;
+  };
 }
 
 /**
  * Instancie proprement PdfPrinter avec vfs et urlResolver résolus
  */
-function createPdfPrinter(fonts: any): any {
+function createPdfPrinter(fonts: FontDescriptors): PdfPrinterInstance {
   const vfs =
     typeof VirtualFSClass === "function" ? new VirtualFSClass() : null;
 
-  let urlResolver: any = null;
+  let urlResolver: { resolve: (url: string) => Promise<string> };
   if (typeof URLResolverClass === "function") {
-    urlResolver = new URLResolverClass(vfs);
+    urlResolver = new URLResolverClass(vfs) as {
+      resolve: (url: string) => Promise<string>;
+    };
   } else {
     urlResolver = {
       resolve: async (url: string) => url,
@@ -70,13 +100,9 @@ function createPdfPrinter(fonts: any): any {
   return printer;
 }
 
-// Résolution absolue des chemins ESM
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-/**
- * Recherche des fichiers de polices .ttf
- */
 function resolveFontPath(fontFilename: string): string {
   const candidates = [
     path.resolve(__dirname, "../../assets/fonts", fontFilename),
@@ -96,7 +122,7 @@ function resolveFontPath(fontFilename: string): string {
   return candidates[0];
 }
 
-const pdfFonts = {
+const pdfFonts: FontDescriptors = {
   Roboto: {
     normal: resolveFontPath("Roboto-Regular.ttf"),
     bold: resolveFontPath("Roboto-Bold.ttf"),
@@ -104,27 +130,31 @@ const pdfFonts = {
   },
 };
 
-/**
- * Nettoie les espaces insécables (\u00A0 et \u202F) pour éviter les petits rectangles carrés dans le PDF
- */
 function formatCurrency(amount: number | Prisma.Decimal | string): string {
   const num = Number(amount) || 0;
   return num.toLocaleString("fr-FR").replace(/[\u00A0\u202F]/g, " ") + " FCFA";
 }
 
-/**
- * Formate une date ISO en date courte française (ex: 21/03/2024)
- */
 function formatDateCourte(dateInput?: Date | string): string {
   if (!dateInput) return "-";
   const d = new Date(dateInput);
   return isNaN(d.getTime()) ? "-" : d.toLocaleDateString("fr-FR");
 }
 
+interface VenteExcelRow {
+  Agence: string;
+  Kiosque: string;
+  "Nom Agent": string;
+  Banque: string;
+  "N° TS10": string;
+  "Total Ventes": number;
+  "Total Payés": number;
+  "Total Solde": number;
+  "Date Début": Date | string;
+  "Date Fin": Date | string;
+}
+
 export const venteExportService = {
-  /**
-   * Interroge la base de données Prisma avec filtres.
-   */
   async getExportData(params: VenteQueryParams) {
     const {
       search,
@@ -159,9 +189,6 @@ export const venteExportService = {
     });
   },
 
-  /**
-   * Génère un fichier CSV avec totaux
-   */
   async generateCSV(params: VenteQueryParams): Promise<string> {
     const ventes = await this.getExportData(params);
 
@@ -219,9 +246,6 @@ export const venteExportService = {
       .join("\n");
   },
 
-  /**
-   * Génère un fichier Excel (.xlsx) avec totaux
-   */
   async generateExcel(params: VenteQueryParams): Promise<Buffer> {
     const ventes = await this.getExportData(params);
 
@@ -235,7 +259,7 @@ export const venteExportService = {
       0,
     );
 
-    const data: any[] = ventes.map((v) => ({
+    const data: VenteExcelRow[] = ventes.map((v) => ({
       Agence: v.agence?.nom || v.agenceNom || "",
       Kiosque: v.kiosque,
       "Nom Agent": v.agent,
@@ -268,9 +292,6 @@ export const venteExportService = {
     return xlsx.write(workbook, { type: "buffer", bookType: "xlsx" });
   },
 
-  /**
-   * Génère un document PDF complet en mode Paysage (10 colonnes)
-   */
   async generatePDF(params: VenteQueryParams): Promise<PDFKit.PDFDocument> {
     const ventes = await this.getExportData(params);
     const printer = createPdfPrinter(pdfFonts);
@@ -288,8 +309,7 @@ export const venteExportService = {
       0,
     );
 
-    // Construction de l'en-tête du tableau (10 colonnes)
-    const tableBody: any[][] = [
+    const tableBody: TableCell[][] = [
       [
         { text: "Agence", style: "tableHeader" },
         { text: "Kiosque", style: "tableHeader" },
@@ -304,14 +324,13 @@ export const venteExportService = {
       ],
     ];
 
-    // Remise des lignes complètes
     ventes.forEach((v) => {
       tableBody.push([
-        v.agence?.nom || v.agenceNom || "",
-        v.kiosque,
-        v.agent,
-        v.banque || "-",
-        v.numeroTS10,
+        { text: v.agence?.nom || v.agenceNom || "" },
+        { text: v.kiosque },
+        { text: v.agent },
+        { text: v.banque || "-" },
+        { text: v.numeroTS10 },
         { text: formatCurrency(v.totalVente), alignment: "right" },
         { text: formatCurrency(v.totalPaye), alignment: "right" },
         { text: formatCurrency(v.totalSolde), alignment: "right" },
@@ -320,7 +339,6 @@ export const venteExportService = {
       ]);
     });
 
-    // Ligne de total général sur les 10 colonnes (fusion des 5 premières colonnes)
     tableBody.push([
       {
         text: "TOTAL GÉNÉRAL",
@@ -352,7 +370,6 @@ export const venteExportService = {
     ]);
 
     const docDefinition: TDocumentDefinitions = {
-      // ⚠️ Format paysage obligatoire pour 10 colonnes !
       pageOrientation: "landscape",
       pageSize: "A4",
       content: [
@@ -366,7 +383,6 @@ export const venteExportService = {
           table: {
             headerRows: 1,
             dontBreakRows: true,
-            // Répartition optimisée de la largeur pour le format horizontal (A4 Landscape ~ 842pt de large)
             widths: [
               "auto",
               "auto",

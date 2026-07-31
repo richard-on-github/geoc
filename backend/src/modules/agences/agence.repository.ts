@@ -6,6 +6,11 @@ import type {
   UpdateAgenceInput,
 } from "./agence.interface.js";
 
+type AgenceAllQueryParams = {
+  search?: string;
+  actif?: boolean;
+};
+
 const agenceMinimalSelect = {
   id: true,
   nom: true,

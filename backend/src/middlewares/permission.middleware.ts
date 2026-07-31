@@ -4,6 +4,12 @@ import { HTTP_STATUS } from "../constants/http-status.js";
 import { MESSAGES } from "../constants/messages.js";
 import { prisma } from "../config/prisma.js";
 
+type PermissionLink = {
+  permission: {
+    code: string;
+  };
+};
+
 export function requirePermissions(...requiredPermissions: string[]) {
   return async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -49,10 +55,10 @@ export function requirePermissions(...requiredPermissions: string[]) {
 
         const rolePermissions =
           userWithPermissions.role?.permissions.map(
-            (rp) => rp.permission.code,
+            (rp: PermissionLink) => rp.permission.code,
           ) || [];
         const directPermissions = userWithPermissions.permissions.map(
-          (up) => up.permission.code,
+          (up: PermissionLink) => up.permission.code,
         );
 
         userPermissions = Array.from(

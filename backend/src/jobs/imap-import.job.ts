@@ -39,8 +39,16 @@ export async function checkAndImportEmails() {
     const lock = await client.getMailboxLock("INBOX");
 
     try {
-      // 1. CORRECTION : Recherche des NON LUS (seen: false) ET récupération des UIDs (uid: true)
-      const uids = await client.search({ seen: false }, { uid: true });
+      const searchResult = await client.search({ seen: false }, { uid: true });
+
+      if (searchResult === false) {
+        console.log("[IMAP Job] Recherche IMAP impossible ou sans résultat.");
+        return;
+      }
+
+      const uids = searchResult;
+
+      console.log(`[IMAP Job] ${uids.length} mail(s) non lu(s) trouvé(s).`);
 
       console.log(`[IMAP Job] ${uids.length} mail(s) non lu(s) trouvé(s).`);
 
@@ -56,7 +64,6 @@ export async function checkAndImportEmails() {
         );
       }
 
-      // 2. Boucle sur les vrais UIDs
       for (const uid of uids) {
         console.log(`[IMAP Job] Traitement du mail réel UID=${uid}`);
 
@@ -70,7 +77,6 @@ export async function checkAndImportEmails() {
           ) {
             console.log(`[IMAP Job] UID=${uid} : Aucun fichier joint.`);
           } else {
-            // 3. CORRECTION : Détection robuste (MIME Type OU Extension du fichier)
             for (const attachment of parsedEmail.attachments) {
               const filename = attachment.filename || "";
               const isValidExtension = /\.(xlsx|xls|csv)$/i.test(filename);
@@ -112,12 +118,10 @@ export async function checkAndImportEmails() {
                   `[IMAP Job] ❌ Erreur import sur ${filename}:`,
                   error.message,
                 );
-                // Astuce : tu pourrais décider ici de ne pas marquer le mail comme lu en faisant un `continue`
               }
             }
           }
 
-          // 4. CORRECTION : Marquage propre comme LU sur le bon UID
           await client.messageFlagsAdd(uid, ["\\Seen"], { uid: true });
           console.log(
             `[IMAP Job] Mail UID=${uid} marqué comme lu avec succès.`,
@@ -137,9 +141,7 @@ export async function checkAndImportEmails() {
   } finally {
     try {
       if (client.usable) await client.logout();
-    } catch {
-      // Ignorer les erreurs de fermeture
-    }
+    } catch {}
     console.log("[IMAP Job] Déconnexion IMAP et fin du cycle.");
     isJobRunning = false; // Libération du verrou pour le prochain Cron
   }

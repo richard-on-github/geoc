@@ -71,7 +71,7 @@ export const venteRepository = {
     importLogData: Prisma.VenteImportLogCreateInput,
     ventesData: Prisma.VenteCreateManyImportLogInput[],
   ) {
-    return prisma.$transaction(async (tx) => {
+    return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const importLog = await tx.venteImportLog.create({
         data: importLogData,
       });

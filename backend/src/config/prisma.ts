@@ -1,75 +1,84 @@
-import {PrismaClient} from "@prisma/client";
-import {PrismaPg} from "@prisma/adapter-pg";
-import {env} from "./env.js";
-import {contextStorage} from "../utils/context.js";
+import { PrismaClient } from "@prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
+import { env } from "./env.js";
+import { contextStorage } from "../utils/context.js";
 
 const adapter = new PrismaPg({
-    connectionString: env.DATABASE_URL,
+  connectionString: env.DATABASE_URL,
 });
 
+type PrismaQueryArgs = {
+  where?: Record<string, unknown>;
+  [key: string]: unknown;
+};
+
+type PrismaQueryContext = {
+  model: string;
+  operation: string;
+  args: PrismaQueryArgs;
+  query: (args: PrismaQueryArgs) => Promise<unknown>;
+};
+
 const globalForPrisma = globalThis as {
-    prismaInstance?: {
-        base: PrismaClient;
-        extended: any;
-    };
+  prismaInstance?: {
+    base: PrismaClient;
+    extended: any;
+  };
 };
 
 if (!globalForPrisma.prismaInstance) {
-    const baseClient = new PrismaClient({
-        adapter,
-        log:
-            env.NODE_ENV === "development" ? ["query", "warn", "error"] : ["error"],
-    });
+  const baseClient = new PrismaClient({
+    adapter,
+    log:
+      env.NODE_ENV === "development" ? ["query", "warn", "error"] : ["error"],
+  });
 
-    const extendedClient = baseClient.$extends({
-        query: {
-            $allModels: {
-                async $allOperations({model, operation, args, query}) {
-                    const ctx = contextStorage.getStore();
+  const extendedClient = baseClient.$extends({
+    query: {
+      $allModels: {
+        async $allOperations({
+          model,
+          operation,
+          args,
+          query,
+        }: PrismaQueryContext) {
+          const ctx = contextStorage.getStore();
 
-                    // RÈGLE A : Hors contexte HTTP (scripts/crons) ou scope GLOBAL -> Pas de filtrage
-                    if (!ctx || ctx.dataScope === "GLOBAL") {
-                        return query(args);
-                    }
+          // RÈGLE A : Hors contexte HTTP (scripts/crons) ou scope GLOBAL -> Pas de filtrage
+          if (!ctx || ctx.dataScope === "GLOBAL") {
+            return query(args);
+          }
+          if (operation === "create" || operation === "createMany") {
+            return query(args);
+          }
+          if (ctx?.dataScope === "AGENCE" && ctx.agenceId) {
+            args.where = args.where || {};
 
-                    // 🚨 NOUVEAU : On ignore l'injection du `where` pour les opérations de création
-                    // (La sécurité sur la création est gérée manuellement dans les services)
-                    if (operation === "create" || operation === "createMany") {
-                        return query(args);
-                    }
+            if (model === "Agence") {
+              if (args.where.id && args.where.id !== ctx.agenceId) {
+                args.where.id = "ACCES_INTERDIT_HORS_PERIMETRE";
+              } else {
+                args.where.id = ctx.agenceId;
+              }
+            } else {
+              const modelsWithAgenceId = ["User", "AuditLog", "Vente"];
 
-                    // RÈGLE B : Si l'utilisateur est restreint à son AGENCE
-                    if (ctx?.dataScope === "AGENCE" && ctx.agenceId) {
-                        args.where = args.where || {};
+              if (modelsWithAgenceId.includes(model)) {
+                args.where.agenceId = ctx.agenceId;
+              }
+            }
+          }
 
-                        // 1. CAS SPÉCIAL : Le modèle Agence
-                        if (model === "Agence") {
-                            if (args.where.id && args.where.id !== ctx.agenceId) {
-                                args.where.id = "ACCES_INTERDIT_HORS_PERIMETRE";
-                            } else {
-                                args.where.id = ctx.agenceId;
-                            }
-                        }
-                        // 2. CAS DES MODÈLES SECTORISÉS
-                        else {
-                            const modelsWithAgenceId = ["User", "AuditLog", "Vente"];
-
-                            if (modelsWithAgenceId.includes(model)) {
-                                args.where.agenceId = ctx.agenceId;
-                            }
-                        }
-                    }
-
-                    return query(args);
-                },
-            },
+          return query(args);
         },
-    });
+      },
+    },
+  });
 
-    globalForPrisma.prismaInstance = {
-        base: baseClient,
-        extended: extendedClient,
-    };
+  globalForPrisma.prismaInstance = {
+    base: baseClient,
+    extended: extendedClient,
+  };
 }
 
 export const prisma = globalForPrisma.prismaInstance.extended;

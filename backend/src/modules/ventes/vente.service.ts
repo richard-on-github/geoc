@@ -2,15 +2,14 @@ import { venteRepository } from "./vente.repository.js";
 import { prisma } from "../../config/prisma.js";
 import { ApiError } from "../../utils/ApiError.js";
 import { logAudit } from "../../utils/audit.js";
-import { AuditAction, TypeImport } from "@prisma/client";
+import { AuditAction, TypeImport, type Prisma } from "@prisma/client";
 import crypto from "crypto";
 import type { VenteQueryParams, ParsedVenteRow } from "./vente.interface.js";
 import { getPaginationMeta } from "../../utils/pagination.js";
-import { contextStorage } from "../../utils/context.js"; // <-- Import du contexte asynchrone
+import { contextStorage } from "../../utils/context.js";
 
 export const venteService = {
   async getAll(params: VenteQueryParams) {
-    // <-- Nettoyé ! Plus de scopeWhere
     const { ventes, total, page, limit } =
       await venteRepository.findAll(params);
     const pagination = getPaginationMeta(total, page, limit);
@@ -48,7 +47,7 @@ export const venteService = {
       select: { id: true, nom: true, code: true },
     });
 
-    let agenceMap = new Map<string, string>();
+    const agenceMap = new Map<string, string>();
     agences.forEach((a) => {
       agenceMap.set(a.nom.trim().toLowerCase(), a.id);
       agenceMap.set(a.code.trim().toLowerCase(), a.id);
@@ -66,7 +65,10 @@ export const venteService = {
 
       if (missingAgences.size > 0) {
         const newAgencesData = Array.from(missingAgences).map((nom) => {
-          const randomSuffix = crypto.randomBytes(3).toString("hex").toUpperCase();
+          const randomSuffix = crypto
+            .randomBytes(3)
+            .toString("hex")
+            .toUpperCase();
           return {
             nom,
             code: `AG-AUTO-${randomSuffix}`,
@@ -92,15 +94,13 @@ export const venteService = {
       }
     }
 
-    // SÉCURITÉ : Préparation des données avec forçage de périmètre
-    const ventesData = parsedRows.map((row) => {
+    // SÉCURITÉ : Préparation des données avec typage strict Prisma
+    const ventesData: Prisma.VenteCreateManyInput[] = parsedRows.map((row) => {
       let matchedAgenceId: string | null = null;
 
       if (isScopedAgence) {
-        // Si l'utilisateur est restreint, on FORCE absolument son agence, peu importe ce qui est écrit dans le fichier Excel !
         matchedAgenceId = ctx.agenceId!;
       } else {
-        // Si l'utilisateur est Admin Global, on match dynamiquement via le fichier
         const searchKey = row.agenceNomBrut.trim().toLowerCase();
         matchedAgenceId = agenceMap.get(searchKey) || null;
       }
@@ -128,10 +128,7 @@ export const venteService = {
       lignes: 0,
     };
 
-    const result = await venteRepository.bulkImport(
-      importLogData,
-      ventesData as any,
-    );
+    const result = await venteRepository.bulkImport(importLogData, ventesData);
 
     await logAudit({
       action: AuditAction.IMPORT,
@@ -162,17 +159,26 @@ export const venteService = {
       throw ApiError.badRequest("Aucune vente à clôturer pour cette période.");
     }
 
-    const totalVentes = ventesACloturer.reduce((sum, v) => sum + Number(v.totalVente), 0);
-    const totalPayes = ventesACloturer.reduce((sum, v) => sum + Number(v.totalPaye), 0);
-    const totalSoldes = ventesACloturer.reduce((sum, v) => sum + Number(v.totalSolde), 0);
+    const totalVentes = ventesACloturer.reduce(
+      (sum, v) => sum + Number(v.totalVente),
+      0,
+    );
+    const totalPayes = ventesACloturer.reduce(
+      (sum, v) => sum + Number(v.totalPaye),
+      0,
+    );
+    const totalSoldes = ventesACloturer.reduce(
+      (sum, v) => sum + Number(v.totalSolde),
+      0,
+    );
 
     const dateDebut = ventesACloturer.reduce(
-        (min, v) => (v.dateDebut < min ? v.dateDebut : min),
-        ventesACloturer[0].dateDebut
+      (min, v) => (v.dateDebut < min ? v.dateDebut : min),
+      ventesACloturer[0].dateDebut,
     );
     const dateFin = ventesACloturer.reduce(
-        (max, v) => (v.dateFin > max ? v.dateFin : max),
-        ventesACloturer[0].dateFin
+      (max, v) => (v.dateFin > max ? v.dateFin : max),
+      ventesACloturer[0].dateFin,
     );
 
     const result = await prisma.$transaction(async (tx) => {
@@ -197,7 +203,6 @@ export const venteService = {
       return cloture;
     });
 
-    // 5. Audit Log
     await logAudit({
       action: AuditAction.CREATION,
       entity: "VenteCloture",
@@ -212,8 +217,10 @@ export const venteService = {
 
   async getClotures() {
     return prisma.venteCloture.findMany({
-      include: { cloturePar: { select: { nom: true, prenom: true, email: true } } },
+      include: {
+        cloturePar: { select: { nom: true, prenom: true, email: true } },
+      },
       orderBy: { dateCloture: "desc" },
     });
-  }
+  },
 };
