@@ -63,10 +63,10 @@ export function VenteFilters({ onFilterChange }: VenteFiltersProps) {
   useEffect(() => {
     onFilterChange({
       search,
-      agenceId: agenceId || undefined,
-      dateDebut: dateDebut || undefined,
-      dateFin: dateFin || undefined,
-      clotureId: clotureId || undefined,
+      ...(agenceId !== '' ? { agenceId } : {}),
+      ...(dateDebut !== '' ? { dateDebut } : {}),
+      ...(dateFin !== '' ? { dateFin } : {}),
+      ...(clotureId !== '' ? { clotureId } : {}),
       nonClotureesOnly,
     })
   }, [search, agenceId, dateDebut, dateFin, clotureId, nonClotureesOnly, onFilterChange])
@@ -99,15 +99,18 @@ export function VenteFilters({ onFilterChange }: VenteFiltersProps) {
     try {
       setIsExporting(true)
       const params = {
-        search: search || undefined,
-        agenceId: agenceId || undefined,
-        dateDebut: dateDebut || undefined,
-        dateFin: dateFin || undefined,
-        clotureId: clotureId || undefined,
-        nonClotureesOnly: nonClotureesOnly || undefined,
+        ...(search !== '' ? { search } : {}),
+        ...(agenceId !== '' ? { agenceId } : {}),
+        ...(dateDebut !== '' ? { dateDebut } : {}),
+        ...(dateFin !== '' ? { dateFin } : {}),
+        ...(clotureId !== '' ? { clotureId } : {}),
+        ...(nonClotureesOnly ? { nonClotureesOnly } : {}),
       }
       const password = await ventesApi.exportVentes(params, format)
-      if (password) {
+
+      const hasPassword = typeof password === 'string' && password !== ''
+
+      if (hasPassword) {
         setExportPassword(password)
       } else {
         toast.success("L'exportation a été téléchargée avec succès.")
@@ -120,18 +123,21 @@ export function VenteFilters({ onFilterChange }: VenteFiltersProps) {
   }
 
   const handleCopyPassword = () => {
-    if (exportPassword) {
-      navigator.clipboard.writeText(exportPassword)
+    const hasPassword = typeof exportPassword === 'string' && exportPassword !== ''
+
+    if (hasPassword) {
+      void navigator.clipboard.writeText(exportPassword)
       setCopied(true)
       toast.success('Mot de passe copié !')
-      setTimeout(() => {
+      window.setTimeout(() => {
         setCopied(false)
       }, 2000)
     }
   }
 
   const handleConfirmCloture = () => {
-    if (!periodeCloture) return
+    if (periodeCloture === '') return
+
     cloturerMois(periodeCloture, {
       onSuccess: () => {
         setIsClotureModalOpen(false)
@@ -153,7 +159,7 @@ export function VenteFilters({ onFilterChange }: VenteFiltersProps) {
     <div className="mb-4 space-y-4">
       {/* 1. Ligne Principale : Barre de recherche et filtres */}
       <div className="flex flex-wrap items-center gap-4">
-        <div className="relative max-w-sm min-w-[200px] flex-1">
+        <div className="relative max-w-sm min-w-50 flex-1">
           <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-[hsl(var(--muted-foreground))]" />
           <input
             type="search"
@@ -162,7 +168,7 @@ export function VenteFilters({ onFilterChange }: VenteFiltersProps) {
             onChange={(e) => {
               setSearchInput(e.target.value)
             }}
-            className="w-full rounded-[var(--radius)] border border-[hsl(var(--input))] bg-[hsl(var(--card))] py-2 pr-3 pl-9 text-sm focus:ring-2 focus:ring-[hsl(var(--ring))] focus:outline-none"
+            className="w-full rounded-(--radius) border border-[hsl(var(--input))] bg-[hsl(var(--card))] py-2 pr-3 pl-9 text-sm focus:ring-2 focus:ring-[hsl(var(--ring))] focus:outline-none"
           />
         </div>
 
@@ -171,7 +177,7 @@ export function VenteFilters({ onFilterChange }: VenteFiltersProps) {
           onChange={(e) => {
             setAgenceId(e.target.value)
           }}
-          className="rounded-[var(--radius)] border border-[hsl(var(--input))] bg-[hsl(var(--card))] px-3 py-2 text-sm focus:ring-2 focus:ring-[hsl(var(--ring))] focus:outline-none"
+          className="rounded-(--radius) border border-[hsl(var(--input))] bg-[hsl(var(--card))] px-3 py-2 text-sm focus:ring-2 focus:ring-[hsl(var(--ring))] focus:outline-none"
         >
           <option value="">Toutes les agences</option>
           {agences.map((a) => (
@@ -184,11 +190,15 @@ export function VenteFilters({ onFilterChange }: VenteFiltersProps) {
         <select
           value={clotureId}
           onChange={(e) => {
-            setClotureId(e.target.value)
-            if (e.target.value) setNonClotureesOnly(false)
+            const nextValue = e.target.value
+
+            setClotureId(nextValue)
+            if (nextValue !== '') {
+              setNonClotureesOnly(false)
+            }
           }}
           disabled={nonClotureesOnly}
-          className="rounded-[var(--radius)] border border-[hsl(var(--input))] bg-[hsl(var(--card))] px-3 py-2 text-sm focus:ring-2 focus:ring-[hsl(var(--ring))] focus:outline-none disabled:opacity-50"
+          className="rounded-(--radius) border border-[hsl(var(--input))] bg-[hsl(var(--card))] px-3 py-2 text-sm focus:ring-2 focus:ring-[hsl(var(--ring))] focus:outline-none disabled:opacity-50"
         >
           <option value="">Toutes les périodes (Clôtures)</option>
           {clotures?.map((c) => (
@@ -204,7 +214,7 @@ export function VenteFilters({ onFilterChange }: VenteFiltersProps) {
           onChange={(e) => {
             setDateDebut(e.target.value)
           }}
-          className="rounded-[var(--radius)] border border-[hsl(var(--input))] bg-[hsl(var(--card))] px-3 py-2 text-sm focus:ring-2 focus:ring-[hsl(var(--ring))] focus:outline-none"
+          className="rounded-(--radius) border border-[hsl(var(--input))] bg-[hsl(var(--card))] px-3 py-2 text-sm focus:ring-2 focus:ring-[hsl(var(--ring))] focus:outline-none"
         />
         <input
           type="date"
@@ -212,7 +222,7 @@ export function VenteFilters({ onFilterChange }: VenteFiltersProps) {
           onChange={(e) => {
             setDateFin(e.target.value)
           }}
-          className="rounded-[var(--radius)] border border-[hsl(var(--input))] bg-[hsl(var(--card))] px-3 py-2 text-sm focus:ring-2 focus:ring-[hsl(var(--ring))] focus:outline-none"
+          className="rounded-(--radius) border border-[hsl(var(--input))] bg-[hsl(var(--card))] px-3 py-2 text-sm focus:ring-2 focus:ring-[hsl(var(--ring))] focus:outline-none"
         />
 
         <button
@@ -247,7 +257,7 @@ export function VenteFilters({ onFilterChange }: VenteFiltersProps) {
               onClick={() => {
                 setIsClotureModalOpen(true)
               }}
-              className="inline-flex items-center gap-2 rounded-[var(--radius)] bg-[hsl(var(--destructive))] px-4 py-2 text-sm font-medium text-[hsl(var(--destructive-foreground))] transition-opacity hover:opacity-90"
+              className="inline-flex items-center gap-2 rounded-(--radius) bg-[hsl(var(--destructive))] px-4 py-2 text-sm font-medium text-[hsl(var(--destructive-foreground))] transition-opacity hover:opacity-90"
             >
               <ShieldAlert size={16} />
               Clôturer le mois
@@ -256,7 +266,7 @@ export function VenteFilters({ onFilterChange }: VenteFiltersProps) {
 
           <label
             className={cn(
-              'inline-flex cursor-pointer items-center gap-2 rounded-[var(--radius)] bg-[hsl(var(--primary))] px-4 py-2 text-sm font-medium text-[hsl(var(--primary-foreground))] transition-opacity hover:opacity-90',
+              'inline-flex cursor-pointer items-center gap-2 rounded-(--radius) bg-[hsl(var(--primary))] px-4 py-2 text-sm font-medium text-[hsl(var(--primary-foreground))] transition-opacity hover:opacity-90',
               (isImporting || isExporting) && 'pointer-events-none opacity-50',
             )}
           >
@@ -278,7 +288,9 @@ export function VenteFilters({ onFilterChange }: VenteFiltersProps) {
             <Can permission="vente.export.csv">
               <button
                 disabled={isExporting}
-                onClick={() => handleExport('csv')}
+                onClick={() => {
+                  void handleExport('csv')
+                }}
                 className="flex items-center gap-1 rounded border px-2 py-1 text-xs hover:bg-[hsl(var(--muted))]"
               >
                 <FileText size={14} /> CSV
@@ -287,7 +299,9 @@ export function VenteFilters({ onFilterChange }: VenteFiltersProps) {
             <Can permission="vente.export.excel">
               <button
                 disabled={isExporting}
-                onClick={() => handleExport('excel')}
+                onClick={() => {
+                  void handleExport('excel')
+                }}
                 className="flex items-center gap-1 rounded border px-2 py-1 text-xs hover:bg-[hsl(var(--muted))]"
               >
                 <FileSpreadsheet size={14} /> Excel
@@ -296,7 +310,9 @@ export function VenteFilters({ onFilterChange }: VenteFiltersProps) {
             <Can permission="vente.export.pdf">
               <button
                 disabled={isExporting}
-                onClick={() => handleExport('pdf')}
+                onClick={() => {
+                  void handleExport('pdf')
+                }}
                 className="flex items-center gap-1 rounded border px-2 py-1 text-xs hover:bg-[hsl(var(--muted))]"
               >
                 <File size={14} /> PDF
@@ -392,7 +408,7 @@ export function VenteFilters({ onFilterChange }: VenteFiltersProps) {
                   onChange={(e) => {
                     setPeriodeCloture(e.target.value)
                   }}
-                  className="w-full rounded-[var(--radius)] border p-2 focus:ring-2 focus:ring-[hsl(var(--destructive))]"
+                  className="w-full rounded-(--radius) border p-2 focus:ring-2 focus:ring-[hsl(var(--destructive))]"
                 />
               </div>
             </div>
@@ -407,7 +423,7 @@ export function VenteFilters({ onFilterChange }: VenteFiltersProps) {
               </button>
               <button
                 onClick={handleConfirmCloture}
-                disabled={isCloturing || !periodeCloture}
+                disabled={isCloturing || periodeCloture === ''}
                 className="rounded-md bg-[hsl(var(--destructive))] px-4 py-2 text-sm font-medium text-[hsl(var(--destructive-foreground))] hover:opacity-90 disabled:opacity-50"
               >
                 {isCloturing ? 'Clôture...' : 'Confirmer la clôture'}
@@ -417,7 +433,7 @@ export function VenteFilters({ onFilterChange }: VenteFiltersProps) {
         </div>
       )}
 
-      {exportPassword && (
+      {typeof exportPassword === 'string' && exportPassword !== '' && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="w-full max-w-md rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-6 shadow-lg">
             <div className="flex items-start justify-between">

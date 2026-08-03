@@ -34,9 +34,9 @@ export type ApiPaginatedResponse<T> = ApiResponse<PaginatedData<T>>
 export interface ListParams {
   page?: number
   limit?: number
-  search?: string
-  sortBy?: string
-  sortOrder?: 'asc' | 'desc'
+  search?: string | undefined
+  sortBy?: string | undefined
+  sortOrder?: 'asc' | 'desc' | undefined
 }
 
 /**
@@ -45,7 +45,7 @@ export interface ListParams {
 export class ApiError extends Error {
   constructor(
     public readonly status: number,
-    public readonly message: string,
+    public override readonly message: string,
     public readonly errors?: Record<string, string[]>,
   ) {
     super(message)

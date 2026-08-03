@@ -18,7 +18,7 @@ export function PermissionsPage() {
       {isError && (
         <ErrorState title="Impossible de charger les permissions" onRetry={() => void refetch()} />
       )}
-      {permissions !== undefined && !isLoading && !isError && (
+      {permissions !== undefined && (
         <PermissionMatrix
           permissions={permissions}
           selected={permissions.map((p) => p.id)}

@@ -27,7 +27,7 @@ export function useAgence(id: string) {
   return useQuery({
     queryKey: AGENCE_QUERY_KEYS.detail(id),
     queryFn: () => agencesApi.getAgenceById(id),
-    enabled: !!id,
+    enabled: id !== '',
   })
 }
 

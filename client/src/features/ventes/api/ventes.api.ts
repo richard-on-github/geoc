@@ -1,29 +1,65 @@
 import { axiosInstance } from '@/shared/api'
-import type { ApiResponse, ApiPaginatedResponse } from '@/shared/types'
+import type { ApiPaginatedResponse } from '@/shared/types'
 import type { Vente, VenteQueryParams, VenteCloture } from '../types'
 
 const BASE_URL = '/ventes'
 
-function mapVente(raw: any): Vente {
-  return {
-    id: raw.id,
-    agenceId: raw.agenceId,
-    agenceNom: raw.agenceNom,
-    kiosque: raw.kiosque,
-    agent: raw.agent,
-    banque: raw.banque,
-    numeroTS10: raw.numeroTS10,
-    totalVente: Number(raw.totalVente),
-    totalPaye: Number(raw.totalPaye),
-    totalSolde: Number(raw.totalSolde),
-    dateDebut: raw.dateDebut,
-    dateFin: raw.dateFin,
-    importId: raw.importId,
-    clotureId: raw.clotureId,
-    createdAt: raw.createdAt,
-    updatedAt: raw.updatedAt,
-    agence: raw.agence,
+type VenteApiRaw = {
+  id?: unknown
+  agenceId?: unknown
+  agenceNom?: unknown
+  kiosque?: unknown
+  agent?: unknown
+  banque?: unknown
+  numeroTS10?: unknown
+  totalVente?: unknown
+  totalPaye?: unknown
+  totalSolde?: unknown
+  dateDebut?: unknown
+  dateFin?: unknown
+  importId?: unknown
+  clotureId?: unknown
+  createdAt?: unknown
+  updatedAt?: unknown
+  agence?: unknown
+}
+
+function asString(value: unknown): string {
+  return typeof value === 'string' ? value : ''
+}
+
+function asNumber(value: unknown): number {
+  return typeof value === 'number' ? value : Number(value)
+}
+
+function mapVente(raw: VenteApiRaw): Vente {
+  const vente: Vente = {
+    id: raw.id as Vente['id'],
+    agenceId: raw.agenceId as Vente['agenceId'],
+    agenceNom: asString(raw.agenceNom),
+    kiosque: asString(raw.kiosque),
+    agent: asString(raw.agent),
+    banque: asString(raw.banque),
+    numeroTS10: asString(raw.numeroTS10),
+    totalVente: asNumber(raw.totalVente),
+    totalPaye: asNumber(raw.totalPaye),
+    totalSolde: asNumber(raw.totalSolde),
+    dateDebut: asString(raw.dateDebut),
+    dateFin: asString(raw.dateFin),
+    importId: raw.importId as Vente['importId'],
+    createdAt: asString(raw.createdAt),
+    updatedAt: asString(raw.updatedAt),
   }
+
+  if (raw.agence !== undefined) {
+    vente.agence = raw.agence as NonNullable<Vente['agence']>
+  }
+
+  if (raw.clotureId !== undefined) {
+    vente.clotureId = raw.clotureId === null ? null : asString(raw.clotureId)
+  }
+
+  return vente
 }
 
 export const ventesApi = {
@@ -32,7 +68,7 @@ export const ventesApi = {
       success: boolean
       message: string
       data: {
-        ventes: any[]
+        ventes: VenteApiRaw[]
         pagination: {
           total: number
           page: number
@@ -96,17 +132,25 @@ export const ventesApi = {
       responseType: 'blob',
     })
 
-    const contentType = response.headers['content-type'] || ''
-    if (contentType.includes('text/html') || contentType.includes('application/json')) {
+    const contentTypeHeader = response.headers['content-type']
+    const contentType = typeof contentTypeHeader === 'string' ? contentTypeHeader : ''
+
+    const isUnexpectedResponse =
+      contentType.includes('text/html') || contentType.includes('application/json')
+
+    if (isUnexpectedResponse) {
       throw new Error("Erreur lors de l'export : réponse inattendue.")
     }
 
-    const exportPassword = (response.headers['x-export-password'] as string) || null
+    const rawExportPassword = response.headers['x-export-password'] as unknown
+
+    const exportPassword =
+      typeof rawExportPassword === 'string' && rawExportPassword !== '' ? rawExportPassword : null
 
     const blob = new Blob([response.data], { type: 'application/zip' })
     const link = document.createElement('a')
     link.href = URL.createObjectURL(blob)
-    link.download = `export_ventes_${new Date().getTime()}.zip`
+    link.download = `export_ventes_${String(Date.now())}.zip`
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)

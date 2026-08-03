@@ -4,7 +4,20 @@ import type { Agence, CreateAgencePayload, UpdateAgencePayload } from '../types'
 
 const BASE_URL = '/agences'
 
-function mapAgence(raw: any): Agence {
+type RawAgence = {
+  id: string
+  nom: string
+  code: string
+  adresse?: string | null
+  telephone?: string | null
+  email?: string | null
+  actif: boolean
+  createdAt: string
+  updatedAt: string
+  _count: { users: number; ventes: number }
+}
+
+function mapAgence(raw: RawAgence): Agence {
   return {
     id: raw.id,
     nom: raw.nom,
@@ -25,7 +38,7 @@ export const agencesApi = {
       success: boolean
       message: string
       data: {
-        agences: any[]
+        agences: RawAgence[]
         pagination: {
           total: number
           page: number
@@ -47,17 +60,17 @@ export const agencesApi = {
   },
 
   async getAgenceById(id: string): Promise<Agence> {
-    const response = await axiosInstance.get<ApiResponse<any>>(`${BASE_URL}/${id}`)
+    const response = await axiosInstance.get<ApiResponse<RawAgence>>(`${BASE_URL}/${id}`)
     return mapAgence(response.data.data)
   },
 
   async createAgence(payload: CreateAgencePayload): Promise<Agence> {
-    const response = await axiosInstance.post<ApiResponse<any>>(BASE_URL, payload)
+    const response = await axiosInstance.post<ApiResponse<RawAgence>>(BASE_URL, payload)
     return mapAgence(response.data.data)
   },
 
   async updateAgence(id: string, payload: UpdateAgencePayload): Promise<Agence> {
-    const response = await axiosInstance.patch<ApiResponse<any>>(`${BASE_URL}/${id}`, payload)
+    const response = await axiosInstance.patch<ApiResponse<RawAgence>>(`${BASE_URL}/${id}`, payload)
     return mapAgence(response.data.data)
   },
 
@@ -66,7 +79,7 @@ export const agencesApi = {
   },
 
   async toggleAgenceStatus(id: string, actif: boolean): Promise<Agence> {
-    const response = await axiosInstance.patch<ApiResponse<any>>(`${BASE_URL}/${id}/status`, {
+    const response = await axiosInstance.patch<ApiResponse<RawAgence>>(`${BASE_URL}/${id}/status`, {
       actif,
     })
     return mapAgence(response.data.data)

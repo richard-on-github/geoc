@@ -176,6 +176,7 @@ export function AgencesTable({
   )
 
   const { data, isLoading } = useAgences(queryParams)
+  const items = data?.items ?? []
 
   const columns = useMemo<ColumnDef<Agence>[]>(
     () => [
@@ -216,7 +217,9 @@ export function AgencesTable({
         enableSorting: false,
         cell: ({ row }) => (
           <span className="text-sm text-[hsl(var(--muted-foreground))]">
-            {row.original.adresse || '—'}
+            {row.original.adresse != null && row.original.adresse !== ''
+              ? row.original.adresse
+              : '—'}
           </span>
         ),
       },
@@ -227,7 +230,9 @@ export function AgencesTable({
         enableSorting: false,
         cell: ({ row }) => (
           <span className="text-sm text-[hsl(var(--muted-foreground))]">
-            {row.original.telephone || '—'}
+            {row.original.telephone != null && row.original.telephone !== ''
+              ? row.original.telephone
+              : '—'}
           </span>
         ),
       },
@@ -238,7 +243,7 @@ export function AgencesTable({
         enableSorting: false,
         cell: ({ row }) => (
           <span className="text-sm text-[hsl(var(--muted-foreground))]">
-            {row.original.email || '—'}
+            {row.original.email != null && row.original.email !== '' ? row.original.email : '—'}
           </span>
         ),
       },
@@ -360,7 +365,7 @@ export function AgencesTable({
   }
 
   /* ---- État vide ---- */
-  if (!isLoading && (!data?.items || data.items.length === 0)) {
+  if (items.length === 0) {
     return (
       <div className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))]">
         <EmptyState
@@ -419,7 +424,10 @@ export function AgencesTable({
                 {row.getVisibleCells().map((cell) => (
                   <td
                     key={cell.id}
-                    className={cn('px-4 py-3', cell.column.id === 'actions' && 'w-12 overflow-visible')}
+                    className={cn(
+                      'px-4 py-3',
+                      cell.column.id === 'actions' && 'w-12 overflow-visible',
+                    )}
                   >
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </td>

@@ -28,7 +28,7 @@ export function AuditTable({ filters }: AuditTableProps) {
   const params = useMemo(() => ({ page, limit, ...filters }), [page, limit, filters])
   const { data, isLoading } = useAuditLogs(params)
 
-  const selectedLog = data?.items?.find((log) => log.id === selectedLogId) ?? null
+  const selectedLog = data?.items.find((log) => log.id === selectedLogId) ?? null
 
   /* ---- Skeleton ---- */
   if (isLoading) {
@@ -63,8 +63,8 @@ export function AuditTable({ filters }: AuditTableProps) {
     )
   }
 
-  const total = data.total ?? 0
-  const totalPages = data.totalPages ?? 1
+  const total = data.total
+  const totalPages = data.totalPages
 
   const from = total === 0 ? 0 : (page - 1) * limit + 1
   const to = Math.min(page * limit, total)

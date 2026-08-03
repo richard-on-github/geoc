@@ -16,9 +16,16 @@ export function AgencesListPage() {
   const [agenceToDelete, setAgenceToDelete] = useState<Agence | null>(null)
   const { mutate: toggleStatus } = useToggleAgenceStatus()
 
-  const handleViewDetail = useCallback((id: string) => navigate(`/agences/${id}`), [navigate])
+  const handleViewDetail = useCallback(
+    (id: string) => {
+      void navigate(`/agences/${id}`)
+    },
+    [navigate],
+  )
   const handleToggleStatus = useCallback(
-    (agence: Agence) => { toggleStatus({ id: agence.id, actif: !agence.actif }); },
+    (agence: Agence) => {
+      toggleStatus({ id: agence.id, actif: !agence.actif })
+    },
     [toggleStatus],
   )
 
@@ -31,7 +38,9 @@ export function AgencesListPage() {
           <Can permission="agence.create">
             <button
               type="button"
-              onClick={() => navigate('/agences/new')}
+              onClick={() => {
+                void navigate('/agences/new')
+              }}
               className="flex items-center gap-2 rounded-[var(--radius)] bg-[hsl(var(--primary))] px-4 py-2 text-sm font-medium text-[hsl(var(--primary-foreground))] transition-opacity hover:opacity-90"
             >
               <Plus size={16} aria-hidden="true" />
@@ -50,7 +59,9 @@ export function AgencesListPage() {
           type="search"
           placeholder="Rechercher une agence..."
           value={searchInput}
-          onChange={(e) => { setSearchInput(e.target.value); }}
+          onChange={(e) => {
+            setSearchInput(e.target.value)
+          }}
           className="w-full rounded-[var(--radius)] border border-[hsl(var(--input))] bg-[hsl(var(--card))] py-2 pr-3 pl-9 text-sm focus:ring-2 focus:ring-[hsl(var(--ring))] focus:outline-none"
         />
       </div>
@@ -62,7 +73,12 @@ export function AgencesListPage() {
         onViewDetail={handleViewDetail}
       />
       {agenceToDelete && (
-        <DeleteAgenceDialog agence={agenceToDelete} onClose={() => { setAgenceToDelete(null); }} />
+        <DeleteAgenceDialog
+          agence={agenceToDelete}
+          onClose={() => {
+            setAgenceToDelete(null)
+          }}
+        />
       )}
     </div>
   )

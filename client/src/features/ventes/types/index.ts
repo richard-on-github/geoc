@@ -43,14 +43,14 @@ export interface Vente {
 export interface VenteQueryParams {
   page?: number
   limit?: number
-  search?: string
-  agenceId?: string
-  dateDebut?: string
-  dateFin?: string
-  clotureId?: string
-  nonClotureesOnly?: boolean
-  sortBy?: 'dateDebut' | 'totalVente' | 'createdAt'
-  sortOrder?: 'asc' | 'desc'
+  search?: string | undefined
+  agenceId?: string | undefined
+  dateDebut?: string | undefined
+  dateFin?: string | undefined
+  clotureId?: string | undefined
+  nonClotureesOnly?: boolean | undefined
+  sortBy?: 'dateDebut' | 'totalVente' | 'createdAt' | undefined
+  sortOrder?: 'asc' | 'desc' | undefined
 }
 
 export type ImportVentePayload = FormData

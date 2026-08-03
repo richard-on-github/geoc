@@ -1,6 +1,6 @@
 import { axiosInstance } from '@/shared/api'
 import type { ApiPaginatedResponse, ListParams } from '@/shared/types'
-import type { AuditLog, AuditLogFilters, AuditAction } from '../types'
+import type { AuditLog, AuditLogFilters } from '../types'
 
 export const auditApi = {
   async getAuditLogs(
@@ -64,8 +64,4 @@ export const auditApi = {
       totalPages: pagination.totalPages,
     }
   },
-}
-
-function mapAction(backendAction: string): string {
-  return backendAction
 }

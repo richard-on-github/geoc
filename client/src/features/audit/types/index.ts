@@ -2,7 +2,7 @@ export type AuditAction = string
 
 export interface AuditLog {
   id: string
-  action: string // au lieu de AuditAction
+  action: string
   entity: string
   entityId: string
   userId: string
@@ -12,6 +12,7 @@ export interface AuditLog {
   before: Record<string, unknown> | null
   after: Record<string, unknown> | null
   createdAt: string
+  message?: string
 }
 
 export interface AuditLogFilters {

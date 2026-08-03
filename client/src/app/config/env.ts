@@ -1,13 +1,10 @@
-/**
- * Accès centralisé et validé aux variables d'environnement.
- * Toute lecture de import.meta.env doit passer par ce module.
- */
-
 function requireEnv(key: keyof ImportMetaEnv): string {
-  const value = import.meta.env[key]
-  if (value === undefined || value === '') {
-    throw new Error(`Variable d'environnement manquante : ${key}`)
+  const value = import.meta.env[key] as string | undefined
+
+  if (typeof value !== 'string' || value.trim() === '') {
+    throw new Error(`Variable d'environnement manquante : ${String(key)}`)
   }
+
   return value
 }
 

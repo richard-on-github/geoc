@@ -29,7 +29,7 @@ export function hasPermission(
     if (userPermissions.includes(req)) return true
 
     // Wildcard resource : "user.*" couvre "user.create", "user.read"…
-    const [resource] = req.split('.')
+    const resource = req.split('.')[0] ?? ''
     return userPermissions.includes(`${resource}.*`)
   })
 }

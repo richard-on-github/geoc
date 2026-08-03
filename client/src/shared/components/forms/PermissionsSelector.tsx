@@ -1,15 +1,19 @@
 import { useAllPermissions } from '@/features/security/hooks/useSecurity'
-import { Controller, type Control } from 'react-hook-form'
+import { Controller, type FieldValues, type Control, type Path } from 'react-hook-form'
 import { Loader2 } from 'lucide-react'
 import type { Permission } from '@/features/security/types'
 
-interface PermissionsSelectorProps {
-  control: Control<any>
-  name: string
+interface PermissionsSelectorProps<TFieldValues extends FieldValues = FieldValues> {
+  control: Control<TFieldValues>
+  name: Path<TFieldValues>
   disabled?: boolean
 }
 
-export function PermissionsSelector({ control, name, disabled }: PermissionsSelectorProps) {
+export function PermissionsSelector<TFieldValues extends FieldValues>({
+  control,
+  name,
+  disabled,
+}: PermissionsSelectorProps<TFieldValues>) {
   const { data: permissions, isLoading, isError } = useAllPermissions()
 
   if (isLoading) {
@@ -30,15 +34,17 @@ export function PermissionsSelector({ control, name, disabled }: PermissionsSele
   }
 
   // Grouper par resource (module)
-  const grouped = permissions.reduce<Record<string, Permission[]>>(
-    (acc, perm) => {
-      const module = perm.resource || 'Autres'
-      if (!acc[module]) acc[module] = []
-      acc[module].push(perm)
-      return acc
-    },
-    {},
-  )
+  const grouped = permissions.reduce<Record<string, Permission[]>>((acc, perm) => {
+    const module =
+      typeof perm.resource === 'string' && perm.resource.trim().length > 0
+        ? perm.resource
+        : 'Autres'
+
+    acc[module] ??= []
+
+    acc[module].push(perm)
+    return acc
+  }, {})
 
   return (
     <Controller
@@ -48,7 +54,7 @@ export function PermissionsSelector({ control, name, disabled }: PermissionsSele
         <div className="space-y-4">
           {Object.entries(grouped).map(([module, perms]) => (
             <div key={module}>
-              <h3 className="mb-2 text-sm font-medium capitalize text-[hsl(var(--foreground))]">
+              <h3 className="mb-2 text-sm font-medium text-[hsl(var(--foreground))] capitalize">
                 {module}
               </h3>
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">

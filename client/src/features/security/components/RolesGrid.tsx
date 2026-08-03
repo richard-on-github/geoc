@@ -16,7 +16,7 @@ export function RolesGrid({ onEdit, onDelete, onViewDetail }: RolesGridProps) {
   const { data: response, isLoading } = useRoles()
 
   // Extraction sécurisée du tableau de rôles
-  const rolesList = response?.data?.items ?? response?.items ?? []
+  const rolesList = response?.items ?? []
 
   /* ---- Skeleton ---- */
   if (isLoading) {
@@ -59,10 +59,10 @@ export function RolesGrid({ onEdit, onDelete, onViewDetail }: RolesGridProps) {
   return (
     <>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {rolesList.map((role: any) => {
+        {rolesList.map((role) => {
           // Calcul des compteurs
-          const permCount = role.permissions?.length ?? role._count?.permissions ?? 0
-          const userCount = role.users?.length ?? role._count?.users ?? 0
+          const permCount = role.permissionCount ?? role.permissions.length
+          const userCount = role.userCount ?? role.users?.length ?? 0
 
           return (
             <div
@@ -119,7 +119,7 @@ export function RolesGrid({ onEdit, onDelete, onViewDetail }: RolesGridProps) {
 
               {/* Description */}
               <p className="line-clamp-2 min-h-[2rem] text-xs text-[hsl(var(--muted-foreground))]">
-                {role.description ?? 'Aucune description.'}
+                {role.description !== null && role.description !== '' ? role.description : 'Aucune description.'}
               </p>
 
               {/* Stats */}

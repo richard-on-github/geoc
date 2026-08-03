@@ -34,7 +34,8 @@ export const updateAgenceSchema = z.object({
 
 export const updateAgenceStatusSchema = z.object({
   actif: z.boolean({
-    error: 'Le statut doit être un booléen',
+    invalid_type_error: 'Le statut doit être un booléen',
+    required_error: 'Le statut est requis',
   }),
 })
 

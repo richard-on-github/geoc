@@ -14,7 +14,7 @@ export function RolesListPage() {
   const [roleToDelete, setRoleToDelete] = useState<Role | null>(null)
 
   const handleViewDetail = (id: string) => {
-    navigate(`/security/roles/${id}`)
+    void navigate(`/security/roles/${id}`)
   }
 
   return (
@@ -26,7 +26,9 @@ export function RolesListPage() {
           <Can permission="role.create">
             <button
               type="button"
-              onClick={() => navigate('/security/roles/new')}
+              onClick={() => {
+                void navigate('/security/roles/new')
+              }}
               className="flex items-center gap-2 rounded-[var(--radius)] bg-[hsl(var(--primary))] px-4 py-2 text-sm font-medium text-[hsl(var(--primary-foreground))] transition-opacity hover:opacity-90"
             >
               <ShieldPlus size={16} aria-hidden="true" />

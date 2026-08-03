@@ -32,9 +32,9 @@ export function formatRelativeTime(date: string | Date): string {
   const diffSeconds = Math.floor(diffMs / 1000)
 
   if (diffSeconds < 60) return "À l'instant"
-  if (diffSeconds < 3600) return `Il y a ${Math.floor(diffSeconds / 60)} min`
-  if (diffSeconds < 86400) return `Il y a ${Math.floor(diffSeconds / 3600)} h`
-  if (diffSeconds < 604800) return `Il y a ${Math.floor(diffSeconds / 86400)} j`
+  if (diffSeconds < 3600) return `Il y a ${String(Math.floor(diffSeconds / 60))} min`
+  if (diffSeconds < 86400) return `Il y a ${String(Math.floor(diffSeconds / 3600))} h`
+  if (diffSeconds < 604800) return `Il y a ${String(Math.floor(diffSeconds / 86400))} j`
 
   return formatDate(date)
 }
@@ -51,19 +51,42 @@ export function capitalize(str: string): string {
  * Génère les initiales d'un nom complet (max 2 caractères).
  */
 export const getInitials = (name?: string): string => {
-  if (!name || typeof name !== 'string') return '??'
+  const normalizedName = name?.trim()
 
-  // On nettoie les espaces et on récupère tous les mots sous forme de tableau
-  const words = name.trim().split(/\s+/)
+  if (normalizedName === undefined || normalizedName === '') {
+    return '??'
+  }
 
-  if (words.length === 0) return '??'
-  if (words.length === 1) return words[0][0].toUpperCase()
+  const words = normalizedName.split(/\s+/)
 
-  // On prend la première lettre du premier mot et du dernier mot
-  const firstInitial = words[0][0]
-  const lastInitial = words[words.length - 1][0]
+  if (words.length === 0) {
+    return '??'
+  }
 
-  return (firstInitial + lastInitial).toUpperCase()
+  const firstWord = words[0]
+  const lastWord = words[words.length - 1]
+
+  if (firstWord === undefined || lastWord === undefined) {
+    return '??'
+  }
+
+  if (firstWord === '' || lastWord === '') {
+    return '??'
+  }
+
+  if (words.length === 1) {
+    const firstChar = firstWord[0]
+    return firstChar === undefined ? '?' : firstChar.toUpperCase()
+  }
+
+  const firstInitial = firstWord[0]
+  const lastInitial = lastWord[0]
+
+  if (firstInitial === undefined || lastInitial === undefined) {
+    return '?'
+  }
+
+  return `${firstInitial.toUpperCase()}${lastInitial.toUpperCase()}`
 }
 
 /**

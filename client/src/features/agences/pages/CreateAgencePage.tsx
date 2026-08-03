@@ -10,7 +10,9 @@ export function CreateAgencePage() {
 
   const onSubmit = (data: CreateAgencePayload) => {
     create(data, {
-      onSuccess: () => navigate('/agences'),
+      onSuccess: () => {
+        void navigate('/agences')
+      },
     })
   }
 
@@ -18,7 +20,9 @@ export function CreateAgencePage() {
     <div className="container mx-auto max-w-3xl py-6">
       <button
         type="button"
-        onClick={() => navigate('/agences')}
+        onClick={() => {
+          void navigate('/agences')
+        }}
         className="mb-4 flex items-center gap-1.5 text-sm text-[hsl(var(--muted-foreground))] transition-colors hover:text-[hsl(var(--foreground))]"
       >
         <ArrowLeft size={15} aria-hidden="true" />

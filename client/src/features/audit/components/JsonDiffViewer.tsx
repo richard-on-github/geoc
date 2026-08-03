@@ -17,8 +17,18 @@ interface DiffRow {
 function formatValue(value: unknown): string {
   if (value === null || value === undefined) return '—'
   if (typeof value === 'boolean') return value ? 'Oui' : 'Non'
+  if (
+    typeof value === 'string' ||
+    typeof value === 'number' ||
+    typeof value === 'bigint' ||
+    typeof value === 'symbol'
+  ) {
+    return String(value)
+  }
+  if (typeof value === 'function') return '[function]'
   if (typeof value === 'object') return JSON.stringify(value)
-  return String(value)
+
+  return '—'
 }
 
 function buildDiffRows(
@@ -83,13 +93,13 @@ export function JsonDiffViewer({ before, after }: JsonDiffViewerProps) {
       <table className="w-full text-sm">
         <thead className="bg-[hsl(var(--muted))]">
           <tr>
-            <th className="px-3 py-2 text-left text-xs font-medium text-[hsl(var(--muted-foreground))] uppercase tracking-wider w-1/5">
+            <th className="w-1/5 px-3 py-2 text-left text-xs font-medium tracking-wider text-[hsl(var(--muted-foreground))] uppercase">
               Champ
             </th>
-            <th className="px-3 py-2 text-left text-xs font-medium text-[hsl(var(--muted-foreground))] uppercase tracking-wider w-2/5">
+            <th className="w-2/5 px-3 py-2 text-left text-xs font-medium tracking-wider text-[hsl(var(--muted-foreground))] uppercase">
               Avant
             </th>
-            <th className="px-3 py-2 text-left text-xs font-medium text-[hsl(var(--muted-foreground))] uppercase tracking-wider w-2/5">
+            <th className="w-2/5 px-3 py-2 text-left text-xs font-medium tracking-wider text-[hsl(var(--muted-foreground))] uppercase">
               Après
             </th>
           </tr>
@@ -98,15 +108,17 @@ export function JsonDiffViewer({ before, after }: JsonDiffViewerProps) {
           {changedRows.map((row) => (
             <tr key={row.key} className={cn(STATUS_STYLES[row.status])}>
               <td className="px-3 py-2.5 align-top">
-                <p className="text-sm font-medium font-mono text-[hsl(var(--foreground))]">{row.key}</p>
-                <span className="text-[10px] uppercase tracking-wide text-[hsl(var(--muted-foreground))]">
+                <p className="font-mono text-sm font-medium text-[hsl(var(--foreground))]">
+                  {row.key}
+                </p>
+                <span className="text-[10px] tracking-wide text-[hsl(var(--muted-foreground))] uppercase">
                   {STATUS_LABELS[row.status]}
                 </span>
               </td>
-              <td className="px-3 py-2.5 align-top text-sm text-[hsl(var(--muted-foreground))] font-mono break-all">
+              <td className="px-3 py-2.5 align-top font-mono text-sm break-all text-[hsl(var(--muted-foreground))]">
                 {row.status === 'added' ? '—' : formatValue(row.beforeValue)}
               </td>
-              <td className="px-3 py-2.5 align-top text-sm text-[hsl(var(--foreground))] font-mono break-all">
+              <td className="px-3 py-2.5 align-top font-mono text-sm break-all text-[hsl(var(--foreground))]">
                 {row.status === 'removed' ? '—' : formatValue(row.afterValue)}
               </td>
             </tr>

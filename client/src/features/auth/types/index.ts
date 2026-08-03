@@ -20,6 +20,8 @@ export interface AuthUser {
   createdAt: string
 }
 
+export type User = AuthUser
+
 export interface UserRole {
   id: string
   name: string

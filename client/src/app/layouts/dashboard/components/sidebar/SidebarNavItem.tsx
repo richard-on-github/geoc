@@ -15,9 +15,10 @@ export function SidebarNavItem({ item, isCollapsed }: SidebarNavItemProps) {
 
   const hasChildren = item.children !== undefined && item.children.length > 0
   const isOpen = openSections.includes(item.id)
-  const isActive = item.href !== undefined
-    ? location.pathname === item.href
-    : item.children?.some((c) => location.pathname.startsWith(c.href)) ?? false
+  const isActive =
+    item.href !== undefined
+      ? location.pathname === item.href
+      : (item.children?.some((c) => location.pathname.startsWith(c.href)) ?? false)
 
   const Icon = item.icon
 
@@ -27,20 +28,25 @@ export function SidebarNavItem({ item, isCollapsed }: SidebarNavItemProps) {
       <div>
         <button
           type="button"
-          onClick={() => toggleSection(item.id)}
+          onClick={() => {
+            toggleSection(item.id)
+          }}
           aria-expanded={isOpen}
           title={isCollapsed ? item.label : undefined}
           className={cn(
             'group flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
             'text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-accent))] hover:text-[hsl(var(--sidebar-accent-foreground))]',
-            isActive && 'bg-[hsl(var(--sidebar-accent))] text-[hsl(var(--sidebar-accent-foreground))]',
+            isActive &&
+              'bg-[hsl(var(--sidebar-accent))] text-[hsl(var(--sidebar-accent-foreground))]',
           )}
         >
           <Icon
             size={18}
             className={cn(
               'shrink-0 transition-colors',
-              isActive ? 'text-[hsl(var(--sidebar-primary))]' : 'text-[hsl(var(--sidebar-foreground))] opacity-70',
+              isActive
+                ? 'text-[hsl(var(--sidebar-primary))]'
+                : 'text-[hsl(var(--sidebar-foreground))] opacity-70',
             )}
             aria-hidden="true"
           />
@@ -50,7 +56,7 @@ export function SidebarNavItem({ item, isCollapsed }: SidebarNavItemProps) {
               <ChevronDown
                 size={14}
                 className={cn(
-                  'shrink-0 transition-transform duration-200 opacity-60',
+                  'shrink-0 opacity-60 transition-transform duration-200',
                   isOpen && 'rotate-180',
                 )}
                 aria-hidden="true"
@@ -70,8 +76,8 @@ export function SidebarNavItem({ item, isCollapsed }: SidebarNavItemProps) {
                   cn(
                     'flex items-center rounded-md px-2 py-1.5 text-sm transition-colors',
                     childActive
-                      ? 'text-[hsl(var(--sidebar-primary))] font-medium'
-                      : 'text-[hsl(var(--sidebar-foreground))] opacity-70 hover:opacity-100 hover:text-[hsl(var(--sidebar-accent-foreground))]',
+                      ? 'font-medium text-[hsl(var(--sidebar-primary))]'
+                      : 'text-[hsl(var(--sidebar-foreground))] opacity-70 hover:text-[hsl(var(--sidebar-accent-foreground))] hover:opacity-100',
                   )
                 }
               >
@@ -93,7 +99,8 @@ export function SidebarNavItem({ item, isCollapsed }: SidebarNavItemProps) {
         cn(
           'group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
           'text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-accent))] hover:text-[hsl(var(--sidebar-accent-foreground))]',
-          linkActive && 'bg-[hsl(var(--sidebar-accent))] text-[hsl(var(--sidebar-accent-foreground))]',
+          linkActive &&
+            'bg-[hsl(var(--sidebar-accent))] text-[hsl(var(--sidebar-accent-foreground))]',
         )
       }
     >
@@ -103,13 +110,13 @@ export function SidebarNavItem({ item, isCollapsed }: SidebarNavItemProps) {
             size={18}
             className={cn(
               'shrink-0',
-              linkActive ? 'text-[hsl(var(--sidebar-primary))]' : 'text-[hsl(var(--sidebar-foreground))] opacity-70',
+              linkActive
+                ? 'text-[hsl(var(--sidebar-primary))]'
+                : 'text-[hsl(var(--sidebar-foreground))] opacity-70',
             )}
             aria-hidden="true"
           />
-          {!isCollapsed && (
-            <span className="flex-1">{item.label}</span>
-          )}
+          {!isCollapsed && <span className="flex-1">{item.label}</span>}
           {!isCollapsed && item.badge !== undefined && (
             <span className="rounded-full bg-[hsl(var(--sidebar-primary))] px-1.5 py-0.5 text-[10px] font-semibold text-white">
               {item.badge}

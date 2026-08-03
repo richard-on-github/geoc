@@ -13,7 +13,11 @@ function formatValue(value: unknown): string {
   if (value === null || value === undefined) return '—'
   if (typeof value === 'boolean') return value ? '✅ Oui' : '❌ Non'
   if (typeof value === 'object') return JSON.stringify(value, null, 2)
-  return String(value)
+  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'bigint') {
+    return String(value)
+  }
+  if (typeof value === 'symbol') return value.toString()
+  return '—'
 }
 
 function renderDiff(before: Record<string, unknown> | null, after: Record<string, unknown> | null) {
@@ -25,7 +29,7 @@ function renderDiff(before: Record<string, unknown> | null, after: Record<string
     )
   }
 
-  const allKeys = new Set([...Object.keys(before || {}), ...Object.keys(after || {})])
+  const allKeys = new Set([...Object.keys(before ?? {}), ...Object.keys(after ?? {})])
 
   // Filtrer les champs qui ont changé ou qui sont présents
   const entries = Array.from(allKeys)
@@ -64,8 +68,8 @@ function renderDiff(before: Record<string, unknown> | null, after: Record<string
           {entries.map((key) => {
             const beforeVal = before?.[key]
             const afterVal = after?.[key]
-            const isAdded = before === null || !(key in (before || {}))
-            const isRemoved = after === null || !(key in (after || {}))
+            const isAdded = before === null ? true : !(key in before)
+            const isRemoved = after === null ? true : !(key in after)
             const rowClass = isAdded
               ? 'bg-[hsl(142,_64%,_96%)] border-l-2 border-l-[hsl(142,_64%,_38%)]'
               : isRemoved
@@ -166,7 +170,9 @@ export function AuditDetailDrawer({ log, onClose }: AuditDetailDrawerProps) {
               renderDiff(log.before, log.after)
             ) : (
               <p className="text-sm text-[hsl(var(--muted-foreground))] italic">
-                {log.message || 'Aucune donnée supplémentaire.'}
+                {log.message != null && log.message !== ''
+                  ? log.message
+                  : 'Aucune donnée supplémentaire.'}
               </p>
             )}
           </div>

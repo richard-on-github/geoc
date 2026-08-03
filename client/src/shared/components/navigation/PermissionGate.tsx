@@ -33,13 +33,11 @@ export function PermissionGate({
 }: PermissionGateProps) {
   const { can, canAny, is } = useCan()
 
-  let allowed = true
+  const hasPermission = permission === undefined ? true : can(permission)
+  const hasAnyPermission = anyOf === undefined ? true : canAny(anyOf)
+  const hasRole = role === undefined ? true : is(role)
 
-  if (permission !== undefined) allowed = allowed && can(permission)
-  if (anyOf !== undefined) allowed = allowed && canAny(anyOf)
-  if (role !== undefined) allowed = allowed && is(role)
-
-  if (!allowed) {
+  if (!hasPermission || !hasAnyPermission || !hasRole) {
     if (fallback !== undefined) return <>{fallback}</>
     return <Navigate to={redirectTo} replace />
   }

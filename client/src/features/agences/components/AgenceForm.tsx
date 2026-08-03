@@ -1,4 +1,4 @@
-import { useForm } from 'react-hook-form'
+import { type SubmitHandler, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { createAgenceSchema, updateAgenceSchema } from '../schemas'
 import type { CreateAgencePayload, UpdateAgencePayload } from '../types'
@@ -7,8 +7,8 @@ import { Field } from '@/shared/components/forms/Field'
 type FormValues = CreateAgencePayload & Partial<Pick<UpdateAgencePayload, 'actif'>>
 
 interface AgenceFormProps {
-  defaultValues?: FormValues
-  onSubmit: (data: FormValues) => void
+  defaultValues?: Partial<FormValues>
+  onSubmit: SubmitHandler<FormValues>
   isSubmitting?: boolean
   submitLabel?: string
   children?: React.ReactNode
@@ -24,19 +24,25 @@ export function AgenceForm({
   submitLabel = 'Enregistrer',
   children,
 }: AgenceFormProps) {
+  const formOptions = {
+    resolver: zodResolver(
+      defaultValues?.actif !== undefined ? updateAgenceSchema : createAgenceSchema,
+    ),
+    ...(defaultValues ? { defaultValues } : {}),
+  }
+
   const {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<FormValues>({
-    resolver: zodResolver(
-      defaultValues?.actif !== undefined ? updateAgenceSchema : createAgenceSchema,
-    ),
-    defaultValues,
-  })
+  } = useForm<FormValues>(formOptions)
+
+  const handleFormSubmit = (event: React.SyntheticEvent<HTMLFormElement>) => {
+    void handleSubmit(onSubmit)(event)
+  }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
+    <form onSubmit={handleFormSubmit} noValidate className="space-y-4">
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <Field id="nom" label="Nom de l'agence" error={errors.nom?.message}>
           <input

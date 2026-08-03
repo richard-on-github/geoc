@@ -1,7 +1,9 @@
+type AuditListParams = Record<string, string | number | boolean | null | undefined>
+
 export const AUDIT_QUERY_KEYS = {
   all: ['audit'] as const,
   lists: () => [...AUDIT_QUERY_KEYS.all, 'list'] as const,
-  list: (params: any) => [...AUDIT_QUERY_KEYS.lists(), params] as const,
+  list: (params: AuditListParams) => [...AUDIT_QUERY_KEYS.lists(), params] as const,
 }
 
 export const AUDIT_ACTION_LABELS: Record<string, string> = {

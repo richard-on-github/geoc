@@ -25,10 +25,12 @@ export function UsersListPage() {
   const { data: rolesData, isLoading: rolesLoading } = useRoles({ limit: 100 })
   const { data: agencesData, isLoading: agencesLoading } = useAgences({ limit: 100 })
 
-  const roles = rolesData?.roles ?? []
+  const roles = rolesData?.items ?? []
   const agences = agencesData?.items ?? []
 
-  const handleViewDetail = useCallback((id: string) => navigate(`/users/${id}`), [navigate])
+  const handleViewDetail = useCallback((id: string) => {
+    void navigate(`/users/${id}`)
+  }, [navigate])
   const handleToggleStatus = useCallback(
     (user: User) => {
       toggleStatus({ id: user.id, actif: !user.isActive })
@@ -46,7 +48,9 @@ export function UsersListPage() {
             <Can permission="user.create">
               <button
                 type="button"
-                onClick={() => navigate('/users/new')}
+                onClick={() => {
+                  void navigate('/users/new')
+                }}
                 className="flex items-center gap-2 rounded-[var(--radius)] bg-[hsl(var(--primary))] px-4 py-2 text-sm font-medium text-[hsl(var(--primary-foreground))] transition-opacity hover:opacity-90"
               >
                 <UserPlus size={16} aria-hidden="true" />

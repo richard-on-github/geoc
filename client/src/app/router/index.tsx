@@ -69,6 +69,7 @@ const RoleDetailPage = lazy(() =>
   import('@/features/security/pages/RoleDetailPage').then((m) => ({ default: m.RoleDetailPage })),
 )
 
+// eslint-disable-next-line react-refresh/only-export-components
 function S(Component: React.ComponentType) {
   return (
     <Suspense fallback={<PageLoader />}>

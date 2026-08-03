@@ -83,7 +83,7 @@ export function UserDetailPage() {
     return <ErrorState title="Utilisateur introuvable" onRetry={() => void refetch()} />
   }
 
-  const isSystemUser = user.role.name === 'SYSTEM'
+  const isSystemUser = user.role.code === 'SYSTEM'
 
   return (
     <div>
@@ -118,7 +118,12 @@ export function UserDetailPage() {
         }
       />
 
-      <form onSubmit={handleSubmit(onSubmit)} className="grid gap-6 lg:grid-cols-3">
+      <form
+        onSubmit={(e) => {
+          void handleSubmit(onSubmit)(e)
+        }}
+        className="grid gap-6 lg:grid-cols-3"
+      >
         {/* Infos principales ou Formulaire d'édition */}
         <div className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-6 lg:col-span-2">
           {!isEditing ? (
@@ -132,13 +137,13 @@ export function UserDetailPage() {
                   <h2 className="text-base font-semibold">{user.fullName}</h2>
                   <p className="text-sm text-[hsl(var(--muted-foreground))]">{user.email}</p>
                   <p className="mt-0.5 text-sm text-[hsl(var(--muted-foreground))]">
-                    {user.role.displayName}
+                    {user.role.nom}
                   </p>
                 </div>
               </div>
               <dl className="grid gap-4 text-sm sm:grid-cols-2">
                 {[
-                  { label: 'Rôle', value: user.role.displayName },
+                  { label: 'Rôle', value: user.role.nom },
                   { label: 'Téléphone', value: user.telephone ?? 'Non renseigné' },
                   // Ligne Agence ajoutée
                   { label: 'Agence', value: user.agence?.nom ?? 'Aucune' },

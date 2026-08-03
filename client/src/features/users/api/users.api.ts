@@ -2,9 +2,41 @@ import { axiosInstance } from '@/shared/api'
 import type { ApiResponse, ApiPaginatedResponse, ListParams } from '@/shared/types'
 import type { User, CreateUserPayload, UpdateUserPayload } from '../types'
 
-function mapUser(raw: any): User {
-  const cleanPermissions = (raw.permissions ?? []).map((p: any) => {
-    const perm = p.permission ? p.permission : p
+interface RawUserPermission {
+  id: string
+  nom: string
+  permission?: { id: string; nom: string }
+}
+
+interface RawUser {
+  id: string
+  prenom: string
+  nom: string
+  email: string
+  telephone?: string | null
+  actif: boolean
+  mustChangePassword: boolean
+  roleId?: string
+  role: {
+    id: string
+    nom: string
+    code: string
+  }
+  agenceId?: string | null
+  agence?: {
+    id: string
+    nom: string
+    code: string
+  } | null
+  createdAt: string
+  updatedAt: string
+  lastLoginAt?: string | null
+  permissions?: RawUserPermission[]
+}
+
+function mapUser(raw: RawUser): User {
+  const cleanPermissions = (raw.permissions ?? []).map((p) => {
+    const perm = p.permission ?? p
     return { id: perm.id, nom: perm.nom }
   })
 
@@ -16,13 +48,15 @@ function mapUser(raw: any): User {
 
     fullName: `${raw.prenom} ${raw.nom}`.trim(),
     email: raw.email,
-    phoneNumber: raw.telephone ?? undefined,
+    ...(raw.telephone != null ? { phoneNumber: raw.telephone } : {}),
+    actif: raw.actif,
     isActive: raw.actif,
     mustChangePassword: raw.mustChangePassword,
+    roleId: raw.roleId ?? raw.role.id,
     role: {
       id: raw.role.id,
-      name: raw.role.code,
-      displayName: raw.role.nom,
+      nom: raw.role.nom,
+      code: raw.role.code,
     },
     // Nouveaux champs
     agenceId: raw.agenceId ?? null,
@@ -50,7 +84,7 @@ export const usersApi = {
       success: boolean
       message: string
       data: {
-        users: any[]
+        users: RawUser[]
         pagination: {
           total: number
           page: number
@@ -72,17 +106,17 @@ export const usersApi = {
   },
 
   async getUserById(id: string): Promise<User> {
-    const response = await axiosInstance.get<ApiResponse<any>>(`/users/${id}`)
+    const response = await axiosInstance.get<ApiResponse<RawUser>>(`/users/${id}`)
     return mapUser(response.data.data)
   },
 
   async createUser(payload: CreateUserPayload): Promise<User> {
-    const response = await axiosInstance.post<ApiResponse<any>>('/users', payload)
+    const response = await axiosInstance.post<ApiResponse<RawUser>>('/users', payload)
     return mapUser(response.data.data)
   },
 
   async updateUser(id: string, payload: UpdateUserPayload): Promise<User> {
-    const response = await axiosInstance.patch<ApiResponse<any>>(`/users/${id}`, payload)
+    const response = await axiosInstance.patch<ApiResponse<RawUser>>(`/users/${id}`, payload)
     return mapUser(response.data.data)
   },
 
@@ -91,7 +125,7 @@ export const usersApi = {
   },
 
   async toggleUserStatus(id: string, actif: boolean): Promise<User> {
-    const response = await axiosInstance.patch<ApiResponse<any>>(`/users/${id}/status`, {
+    const response = await axiosInstance.patch<ApiResponse<RawUser>>(`/users/${id}/status`, {
       actif,
     })
     return mapUser(response.data.data)

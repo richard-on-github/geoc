@@ -74,7 +74,12 @@ export function ChangePasswordModal({ open, onOpenChange }: ChangePasswordModalP
             Saisissez votre mot de passe actuel et le nouveau mot de passe.
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit(onSubmit)} noValidate>
+        <form
+          onSubmit={(e) => {
+            void handleSubmit(onSubmit)(e)
+          }}
+          noValidate
+        >
           <div className="space-y-4 py-2">
             <Field
               id="currentPassword"

@@ -7,6 +7,12 @@ export interface Permission {
   description?: string | null
 }
 
+export interface PermissionGroup {
+  resource: string
+  label: string
+  permissions: Permission[]
+}
+
 export interface Role {
   id: string
   nom: string

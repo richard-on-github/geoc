@@ -1,40 +1,64 @@
+import { isAxiosError } from 'axios'
 import { useMutation } from '@tanstack/react-query'
 import { useNavigate } from 'react-router'
 import toast from 'react-hot-toast'
 import { authApi } from '../api'
 import { useAuthStore } from './useAuthStore'
 import { AUTH_ROUTES } from '../constants'
-import type { LoginPayload } from '../types'
+import type { AuthTokens, LoginPayload } from '../types'
 import { ApiError } from '@/shared/types'
 import { tokenStorage } from '@/shared/api/axios-instance'
+
+type LoginTokensPayload = {
+  accessToken?: string
+  refreshToken?: string
+  expiresIn?: number
+  tokens?: {
+    accessToken?: string
+    refreshToken?: string
+    expiresIn?: number
+  }
+}
 
 export function useLogin() {
   const navigate = useNavigate()
   const { setSession } = useAuthStore()
 
+  function isNonEmptyString(value: string | null | undefined): value is string {
+    return typeof value === 'string' && value.trim() !== ''
+  }
+
   return useMutation({
     mutationFn: async (payload: LoginPayload) => {
-      const response = await authApi.login(payload)
-      const tokensData = response.data || response
+      const loginResponse = (await authApi.login(payload)) as LoginTokensPayload
 
-      if (!tokensData?.accessToken) {
+      const accessToken = loginResponse.tokens?.accessToken ?? loginResponse.accessToken
+      const refreshToken = loginResponse.tokens?.refreshToken ?? loginResponse.refreshToken
+      const expiresIn = loginResponse.tokens?.expiresIn ?? loginResponse.expiresIn ?? 0
+
+      if (!isNonEmptyString(accessToken) || !isNonEmptyString(refreshToken)) {
         throw new Error('Format de réponse login invalide')
       }
 
-      tokenStorage.setTokens(tokensData.accessToken, tokensData.refreshToken)
+      const authTokens: AuthTokens = {
+        accessToken,
+        refreshToken,
+        expiresIn,
+      }
+
+      tokenStorage.setTokens(accessToken, refreshToken)
 
       try {
-        const meResponse = await authApi.getMe(tokensData.accessToken)
+        const meResponse = await authApi.getMe()
 
-        const userData = meResponse.data || meResponse
-
-        const finalUser = userData.data || userData
-
-        if (!finalUser || (!finalUser.id && !finalUser._id)) {
+        if (typeof meResponse.id !== 'string' || meResponse.id.trim() === '') {
           throw new Error('Format de réponse /auth/me invalide : utilisateur introuvable')
         }
 
-        return { user: finalUser, tokens: tokensData }
+        return {
+          user: meResponse,
+          tokens: authTokens,
+        }
       } catch (err) {
         tokenStorage.clearAll()
         throw err
@@ -50,19 +74,29 @@ export function useLogin() {
     onError: (error) => {
       console.error('DEBUG LOGIN ERROR:', error)
 
-      // 2. ON VERIFIE EN PREMIER "ApiError" (plus spécifique)
       if (error instanceof ApiError) {
         toast.error(error.message)
         return
       }
 
-      // 3. ON VERIFIE SI C'EST UNE ERREUR AXIOS BRUTE (si pas interceptée globalement)
-      if (typeof error === 'object' && error !== null && 'isAxiosError' in error) {
-        const axiosError = error as any
-        const backendMessage =
-          axiosError.response?.data?.message ||
-          axiosError.response?.data?.error ||
-          'Identifiants invalides ou compte bloqué.'
+      if (isAxiosError(error)) {
+        const responseData: unknown = error.response?.data
+
+        const backendMessage = (() => {
+          if (typeof responseData === 'object' && responseData !== null) {
+            const record = responseData as Record<string, unknown>
+
+            if (typeof record.message === 'string') {
+              return record.message
+            }
+
+            if (typeof record.error === 'string') {
+              return record.error
+            }
+          }
+
+          return 'Identifiants invalides ou compte bloqué.'
+        })()
 
         toast.error(backendMessage)
         return

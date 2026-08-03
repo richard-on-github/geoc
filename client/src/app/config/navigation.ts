@@ -4,8 +4,8 @@ import {
   ShieldCheck,
   ClipboardList,
   Key,
-  Building2, // Nouveau
-  ShoppingCart, // Nouveau
+  Building2,
+  ShoppingCart,
   type LucideIcon,
 } from 'lucide-react'
 

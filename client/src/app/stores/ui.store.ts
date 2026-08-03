@@ -17,7 +17,13 @@ export const useUiStore = create<UiStore>()((set) => ({
   theme: 'light',
   isMobileMenuOpen: false,
 
-  setTheme: (theme) => set({ theme }),
-  toggleMobileMenu: () => set((s) => ({ isMobileMenuOpen: !s.isMobileMenuOpen })),
-  closeMobileMenu: () => set({ isMobileMenuOpen: false }),
+  setTheme: (theme) => {
+    set({ theme })
+  },
+  toggleMobileMenu: () => {
+    set((s) => ({ isMobileMenuOpen: !s.isMobileMenuOpen }))
+  },
+  closeMobileMenu: () => {
+    set({ isMobileMenuOpen: false })
+  },
 }))

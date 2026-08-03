@@ -16,13 +16,14 @@ function groupPermissions(permissions: Permission[]): PermissionGroup[] {
   const map = new Map<string, PermissionGroup>()
 
   for (const perm of permissions) {
-    const existing = map.get(perm.resource)
+    const resKey = perm.resource ?? perm.code.split('.')[0] ?? ''
+    const existing = map.get(resKey)
     if (existing !== undefined) {
       existing.permissions.push(perm)
     } else {
-      map.set(perm.resource, {
-        resource: perm.resource,
-        label: RESOURCE_LABELS[perm.resource] ?? perm.resource,
+      map.set(resKey, {
+        resource: resKey,
+        label: RESOURCE_LABELS[resKey] ?? resKey,
         permissions: [perm],
       })
     }
@@ -177,7 +178,7 @@ export function PermissionMatrix({
                       {/* <p className="mt-0.5 font-mono text-xs text-[hsl(var(--muted-foreground))]">
                         {perm.code}
                       </p> */}
-                      {perm.description !== null && (
+                      {perm.description !== null && perm.description !== undefined && perm.description !== '' && (
                         <p className="mt-0.5 text-xs text-[hsl(var(--muted-foreground))]">
                           {perm.description}
                         </p>

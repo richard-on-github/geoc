@@ -33,7 +33,9 @@ export function CreateRolePage() {
 
   const onSubmit = (values: CreateRoleFormValues) => {
     createRole(values, {
-      onSuccess: () => navigate('/security/roles'),
+      onSuccess: () => {
+        void navigate('/security/roles')
+      },
     })
   }
 
@@ -43,7 +45,9 @@ export function CreateRolePage() {
     <div className="container mx-auto max-w-4xl py-6">
       <button
         type="button"
-        onClick={() => navigate('/security/roles')}
+        onClick={() => {
+          void navigate('/security/roles')
+        }}
         className="mb-4 flex items-center gap-1.5 text-sm text-[hsl(var(--muted-foreground))] transition-colors hover:text-[hsl(var(--foreground))]"
       >
         <ArrowLeft size={15} aria-hidden="true" />
@@ -52,7 +56,13 @@ export function CreateRolePage() {
 
       <h1 className="mb-6 text-2xl font-semibold">Créer un rôle</h1>
 
-      <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-6">
+      <form
+        onSubmit={(e) => {
+          void handleSubmit(onSubmit)(e)
+        }}
+        noValidate
+        className="space-y-6"
+      >
         <div className="space-y-4 rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-6">
           <h2 className="text-base font-medium">Informations du rôle</h2>
 
@@ -156,7 +166,9 @@ export function CreateRolePage() {
         <div className="flex justify-end gap-3">
           <button
             type="button"
-            onClick={() => navigate('/security/roles')}
+            onClick={() => {
+              void navigate('/security/roles')
+            }}
             disabled={isPending}
             className="rounded-[var(--radius)] border border-[hsl(var(--border))] px-4 py-2 text-sm font-medium transition-colors hover:bg-[hsl(var(--muted))] disabled:opacity-50"
           >

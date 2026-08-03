@@ -27,12 +27,21 @@ function useDialog() {
   return context
 }
 
-// --- Composants enfants ---
+interface DialogTriggerProps {
+  children: React.ReactElement<{
+    onClick?: React.MouseEventHandler<HTMLElement>
+  }>
+}
 
-export function DialogTrigger({ children }: { children: React.ReactNode }) {
+export function DialogTrigger({ children }: DialogTriggerProps) {
   const { onOpenChange } = useDialog()
-  return React.cloneElement(React.Children.only(children) as React.ReactElement, {
-    onClick: () => { onOpenChange(true); },
+  const child = React.Children.only(children)
+
+  return React.cloneElement(child, {
+    onClick: (event: React.MouseEvent<HTMLElement>) => {
+      child.props.onClick?.(event)
+      onOpenChange(true)
+    },
   })
 }
 
@@ -47,7 +56,9 @@ export function DialogOverlay({ className, ...props }: React.HTMLAttributes<HTML
   return (
     <div
       className={cn('fixed inset-0 z-50 bg-black/50 backdrop-blur-sm', className)}
-      onClick={() => { onOpenChange(false); }}
+      onClick={() => {
+        onOpenChange(false)
+      }}
       {...props}
     />
   )
@@ -66,7 +77,9 @@ export function DialogContent({
       if (e.key === 'Escape') onOpenChange(false)
     }
     document.addEventListener('keydown', handleEscape)
-    return () => { document.removeEventListener('keydown', handleEscape); }
+    return () => {
+      document.removeEventListener('keydown', handleEscape)
+    }
   }, [onOpenChange])
 
   return (
@@ -80,7 +93,9 @@ export function DialogContent({
         className={cn(
           'relative w-full max-w-lg rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-6 shadow-lg',
         )}
-        onClick={(e) => { e.stopPropagation(); }}
+        onClick={(e) => {
+          e.stopPropagation()
+        }}
       >
         {children}
       </div>

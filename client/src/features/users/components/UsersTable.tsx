@@ -234,11 +234,11 @@ export function UsersTable({
       {
         id: 'role',
         header: 'Rôle',
-        accessorKey: 'role.displayName',
+        accessorKey: 'role.nom',
         enableSorting: false,
         cell: ({ row }) => (
           <span className="inline-flex items-center rounded-md border border-[hsl(var(--border))] px-2 py-0.5 text-xs text-[hsl(var(--muted-foreground))]">
-            {row.original.role.displayName}
+            {row.original.role.nom}
           </span>
         ),
       },
@@ -291,7 +291,7 @@ export function UsersTable({
         enableSorting: false,
         cell: ({ row, table }) => {
           const user = row.original
-          if (user.role.name === 'SYSTEM') {
+          if (user.role.nom === 'SYSTEM') {
             return null
           }
           return (
@@ -372,7 +372,8 @@ export function UsersTable({
   }
 
   /* ---- État vide ---- */
-  if (!isLoading && (!data?.items || data.items.length === 0)) {
+  const userItems = data?.items ?? []
+  if (userItems.length === 0) {
     return (
       <div className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))]">
         <EmptyState
@@ -467,7 +468,7 @@ export function UsersTable({
                         setPagination((p) => ({ ...p, pageIndex: 0, pageSize: size }))
                       }}
                       className={cn(
-                        'h-7 min-w-[28px] rounded-[var(--radius-sm)] border border-[hsl(var(--border))] px-1.5 text-xs font-medium transition-colors hover:bg-[hsl(var(--muted))]',
+                        'h-7 min-w-7 rounded-sm border border-[hsl(var(--border))] px-1.5 text-xs font-medium transition-colors hover:bg-[hsl(var(--muted))]',
                         pagination.pageSize === size
                           ? 'border-[hsl(var(--primary))] bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))]'
                           : 'bg-[hsl(var(--card))] text-[hsl(var(--foreground))]',
@@ -487,7 +488,7 @@ export function UsersTable({
                   onClick={() => {
                     table.previousPage()
                   }}
-                  className="flex h-7 w-7 items-center justify-center rounded-[var(--radius-sm)] border border-[hsl(var(--border))] bg-[hsl(var(--card))] transition-colors hover:bg-[hsl(var(--muted))] disabled:cursor-not-allowed disabled:opacity-40"
+                  className="flex h-7 w-7 items-center justify-center rounded-sm border border-[hsl(var(--border))] bg-[hsl(var(--card))] transition-colors hover:bg-[hsl(var(--muted))] disabled:cursor-not-allowed disabled:opacity-40"
                   aria-label="Page précédente"
                 >
                   <ChevronLeft className="h-4 w-4" />
@@ -503,7 +504,7 @@ export function UsersTable({
                   onClick={() => {
                     table.nextPage()
                   }}
-                  className="flex h-7 w-7 items-center justify-center rounded-[var(--radius-sm)] border border-[hsl(var(--border))] bg-[hsl(var(--card))] transition-colors hover:bg-[hsl(var(--muted))] disabled:cursor-not-allowed disabled:opacity-40"
+                  className="flex h-7 w-7 items-center justify-center rounded-sm border border-[hsl(var(--border))] bg-[hsl(var(--card))] transition-colors hover:bg-[hsl(var(--muted))] disabled:cursor-not-allowed disabled:opacity-40"
                   aria-label="Page suivante"
                 >
                   <ChevronRight className="h-4 w-4" />

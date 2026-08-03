@@ -1,18 +1,20 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import { authApi } from '../api'
-import type {  ResetPasswordPayload } from '../types'
+import type { ChangePasswordPayload, ResetPasswordPayload } from '../types'
 import { ApiError } from '@/shared/types'
 
 export function useChangePassword() {
   return useMutation({
-    mutationFn: ({ currentPassword, newPassword }: { currentPassword: string; newPassword: string }) =>
-      authApi.changePassword(currentPassword, newPassword),
+    mutationFn: ({ currentPassword, newPassword }: ChangePasswordPayload) =>
+      authApi.changePassword({ currentPassword, newPassword }),
     onSuccess: () => {
       toast.success('Mot de passe modifié avec succès.')
     },
     onError: (error) => {
-      toast.error(error instanceof ApiError ? error.message : 'Erreur lors du changement de mot de passe.')
+      toast.error(
+        error instanceof ApiError ? error.message : 'Erreur lors du changement de mot de passe.',
+      )
     },
   })
 }

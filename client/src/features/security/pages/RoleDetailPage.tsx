@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from 'react-router'
-import { ArrowLeft, Users, Key, Building2, Globe } from 'lucide-react'
+import { ArrowLeft, Users, Key, Building2 } from 'lucide-react'
 import { useRole } from '../hooks'
 import { PageHeader } from '@/shared/components/layout/PageHeader'
 import { ErrorState } from '@/shared/components/feedback/ErrorState'
@@ -32,7 +32,9 @@ export function RoleDetailPage() {
     <div>
       <button
         type="button"
-        onClick={() => navigate('/security/roles')}
+        onClick={() => {
+          void navigate('/security/roles')
+        }}
         className="mb-4 flex items-center gap-1.5 text-sm text-[hsl(var(--muted-foreground))] transition-colors hover:text-[hsl(var(--foreground))]"
       >
         <ArrowLeft size={15} aria-hidden="true" />
@@ -52,7 +54,7 @@ export function RoleDetailPage() {
             {[
               { label: 'Nom', value: role.nom },
               { label: 'Code', value: role.code },
-              { label: 'Description', value: role.description || 'Aucune' },
+              { label: 'Description', value: role.description ?? 'Aucune' },
               { label: 'Scope', value: role.dataScope === 'GLOBAL' ? '🌐 Global' : '🏢 Agence' },
               { label: 'Niveau', value: role.niveau },
               { label: 'Statut', value: role.actif ? 'Actif' : 'Inactif' },

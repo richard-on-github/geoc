@@ -39,7 +39,7 @@ function Field({
         {label}
       </label>
       {children}
-      {error && (
+      {error !== undefined && error !== '' && (
         <p role="alert" className="text-xs text-[hsl(var(--destructive))]">
           {error}
         </p>
@@ -109,7 +109,7 @@ export function RoleFormModal({ mode, role, onClose }: RoleFormModalProps) {
     }
   }
 
-  const title = mode === 'create' ? 'Créer un rôle' : `Modifier — ${role?.nom ?? ''}`
+  const title = mode === 'create' ? 'Créer un rôle' : `Modifier — ${role !== undefined ? role.nom : ''}`
   const formErrors = errors as Record<string, { message?: string }>
 
   return (
@@ -137,7 +137,12 @@ export function RoleFormModal({ mode, role, onClose }: RoleFormModalProps) {
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit(onSubmit)} noValidate>
+        <form
+          onSubmit={(e) => {
+            void handleSubmit(onSubmit)(e)
+          }}
+          noValidate
+        >
           <div className="max-h-[70vh] space-y-5 overflow-y-auto p-6">
             <Field id="nom" label="Nom du rôle" error={formErrors['nom']?.message}>
               <input

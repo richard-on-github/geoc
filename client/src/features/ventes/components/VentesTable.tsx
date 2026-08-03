@@ -20,7 +20,7 @@ import {
 import { useVentes } from '../hooks'
 import { EmptyState } from '@/shared/components/feedback/EmptyState'
 import { cn } from '@/shared/lib'
-import { formatDateTime, formatCurrency } from '@/shared/utils'
+import { formatCurrency } from '@/shared/utils'
 import type { Vente } from '../types'
 
 interface VentesTableProps {
@@ -51,16 +51,23 @@ export function VentesTable({ filters }: VentesTableProps) {
     filters.nonClotureesOnly,
   ])
 
+  const toOptionalString = (value: string | null | undefined): string | undefined => {
+    if (value === null || value === undefined || value === '') {
+      return undefined
+    }
+    return value
+  }
+
   const queryParams = useMemo(
     () => ({
       page: pagination.pageIndex + 1,
       limit: pagination.pageSize,
-      search: filters.search || undefined,
-      agenceId: filters.agenceId || undefined,
-      dateDebut: filters.dateDebut || undefined,
-      dateFin: filters.dateFin || undefined,
-      clotureId: filters.clotureId || undefined,
-      nonClotureesOnly: filters.nonClotureesOnly || undefined,
+      search: toOptionalString(filters.search),
+      agenceId: toOptionalString(filters.agenceId),
+      dateDebut: toOptionalString(filters.dateDebut),
+      dateFin: toOptionalString(filters.dateFin),
+      clotureId: toOptionalString(filters.clotureId),
+      nonClotureesOnly: filters.nonClotureesOnly === true ? true : undefined,
       sortBy: sorting[0]?.id as 'dateDebut' | 'totalVente' | 'createdAt' | undefined,
       sortOrder:
         sorting[0] !== undefined
@@ -72,22 +79,30 @@ export function VentesTable({ filters }: VentesTableProps) {
     [pagination, sorting, filters],
   )
 
-  const { data, isLoading } = useVentes(queryParams)
+  const { data, isPending, isFetching } = useVentes(queryParams)
+  const isLoading = isPending && isFetching
 
   const columns = useMemo<ColumnDef<Vente>[]>(
     () => [
-      // --- NOUVELLE COLONNE : STATUT ---
       {
         id: 'statut',
         header: '',
         accessorKey: 'clotureId',
         enableSorting: false,
-        cell: ({ row }) =>
-          row.original.clotureId ? (
-            <Lock size={16} className="mx-auto text-[hsl(var(--destructive))]" title="Clôturée" />
+        cell: ({ row }) => {
+          const clotureId = row.original.clotureId
+          const hasClotureId = typeof clotureId === 'string' && clotureId !== ''
+
+          return hasClotureId ? (
+            <span title="Clôturée" className="mx-auto flex justify-center">
+              <Lock size={16} className="text-[hsl(var(--destructive))]" />
+            </span>
           ) : (
-            <Unlock size={16} className="mx-auto text-green-500" title="Non clôturée" />
-          ),
+            <span title="Non clôturée" className="mx-auto flex justify-center">
+              <Unlock size={16} className="text-green-500" />
+            </span>
+          )
+        },
       },
       {
         id: 'agenceNom',
@@ -213,7 +228,8 @@ export function VentesTable({ filters }: VentesTableProps) {
   }
 
   // Empty
-  if (!isLoading && (!data?.items || data.items.length === 0)) {
+  const venteItems = data?.items ?? []
+  if (venteItems.length === 0) {
     return (
       <div className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))]">
         <EmptyState
@@ -299,7 +315,7 @@ export function VentesTable({ filters }: VentesTableProps) {
                       setPagination({ pageIndex: 0, pageSize: size })
                     }}
                     className={cn(
-                      'h-7 min-w-[28px] rounded-[var(--radius-sm)] border border-[hsl(var(--border))] px-1.5 text-xs font-medium transition-colors hover:bg-[hsl(var(--muted))]',
+                      'h-7 min-w-7 rounded-sm border border-[hsl(var(--border))] px-1.5 text-xs font-medium transition-colors hover:bg-[hsl(var(--muted))]',
                       pagination.pageSize === size
                         ? 'border-[hsl(var(--primary))] bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))]'
                         : 'bg-[hsl(var(--card))] text-[hsl(var(--foreground))]',
@@ -318,7 +334,7 @@ export function VentesTable({ filters }: VentesTableProps) {
                 onClick={() => {
                   table.previousPage()
                 }}
-                className="flex h-7 w-7 items-center justify-center rounded-[var(--radius-sm)] border border-[hsl(var(--border))] bg-[hsl(var(--card))] transition-colors hover:bg-[hsl(var(--muted))] disabled:cursor-not-allowed disabled:opacity-40"
+                className="flex h-7 w-7 items-center justify-center rounded-sm border border-[hsl(var(--border))] bg-[hsl(var(--card))] transition-colors hover:bg-[hsl(var(--muted))] disabled:cursor-not-allowed disabled:opacity-40"
               >
                 <ChevronLeft className="h-4 w-4" />
               </button>
@@ -331,7 +347,7 @@ export function VentesTable({ filters }: VentesTableProps) {
                 onClick={() => {
                   table.nextPage()
                 }}
-                className="flex h-7 w-7 items-center justify-center rounded-[var(--radius-sm)] border border-[hsl(var(--border))] bg-[hsl(var(--card))] transition-colors hover:bg-[hsl(var(--muted))] disabled:cursor-not-allowed disabled:opacity-40"
+                className="flex h-7 w-7 items-center justify-center rounded-sm border border-[hsl(var(--border))] bg-[hsl(var(--card))] transition-colors hover:bg-[hsl(var(--muted))] disabled:cursor-not-allowed disabled:opacity-40"
               >
                 <ChevronRight className="h-4 w-4" />
               </button>

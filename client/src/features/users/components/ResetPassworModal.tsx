@@ -31,14 +31,14 @@ function generatePassword(): string {
 
   // Force au moins un de chaque catégorie
   let password = ''
-  password += uppercase[Math.floor(Math.random() * uppercase.length)]
-  password += lowercase[Math.floor(Math.random() * lowercase.length)]
-  password += digits[Math.floor(Math.random() * digits.length)]
-  password += symbols[Math.floor(Math.random() * symbols.length)]
+  password += uppercase[Math.floor(Math.random() * uppercase.length)] ?? ''
+  password += lowercase[Math.floor(Math.random() * lowercase.length)] ?? ''
+  password += digits[Math.floor(Math.random() * digits.length)] ?? ''
+  password += symbols[Math.floor(Math.random() * symbols.length)] ?? ''
 
   // Remplir le reste aléatoirement
   for (let i = 4; i < length; i++) {
-    password += all[Math.floor(Math.random() * all.length)]
+    password += all[Math.floor(Math.random() * all.length)] ?? ''
   }
 
   // Mélanger la chaîne
@@ -63,15 +63,15 @@ export function ResetPasswordModal({ user, onClose }: ResetPasswordModalProps) {
   }
 
   const handleCopy = () => {
-    if (finalPassword) {
-      navigator.clipboard.writeText(finalPassword)
+    if (finalPassword !== '') {
+      void navigator.clipboard.writeText(finalPassword)
       setCopied(true)
       setTimeout(() => { setCopied(false); }, 2000)
     }
   }
 
   const handleSubmit = () => {
-    if (!finalPassword || finalPassword.length < 8) {
+    if (finalPassword === '' || finalPassword.length < 8) {
       toast.error('Le mot de passe doit contenir au moins 8 caractères.')
       return
     }
@@ -174,7 +174,7 @@ export function ResetPasswordModal({ user, onClose }: ResetPasswordModalProps) {
           <button
             type="button"
             onClick={handleSubmit}
-            disabled={isPending || !finalPassword || finalPassword.length < 8}
+            disabled={isPending || finalPassword === '' || finalPassword.length < 8}
             className="flex items-center gap-2 rounded-[var(--radius)] bg-[hsl(var(--primary))] px-4 py-2 text-sm font-medium text-[hsl(var(--primary-foreground))] transition-opacity hover:opacity-90 disabled:opacity-50"
           >
             {isPending && <Loader2 size={16} className="animate-spin" />}

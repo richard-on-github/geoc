@@ -61,7 +61,10 @@ axiosInstance.interceptors.request.use(
     }
     return config
   },
-  (error: unknown) => Promise.reject(error),
+  (error: unknown) => {
+    const normalizedError = error instanceof Error ? error : new Error(String(error))
+    return Promise.reject(normalizedError)
+  },
 )
 
 axiosInstance.interceptors.response.use(
@@ -74,17 +77,17 @@ axiosInstance.interceptors.response.use(
     const status = error.response?.status
 
     if (originalRequest.url?.includes('/auth/login') === true) {
-      return Promise.reject(buildApiError(error))
+      throw buildApiError(error)
     }
 
     if (status !== 401 || originalRequest._retry === true) {
-      return Promise.reject(buildApiError(error))
+      throw buildApiError(error)
     }
 
     if (originalRequest.url?.includes('/auth/refresh-token') === true) {
       tokenStorage.clearAll()
       window.location.href = '/login'
-      return Promise.reject(buildApiError(error))
+      throw buildApiError(error)
     }
 
     if (isRefreshing) {
@@ -99,7 +102,6 @@ axiosInstance.interceptors.response.use(
       })
     }
 
-    /* Déclenchement du refresh */
     originalRequest._retry = true
     isRefreshing = true
 
@@ -109,7 +111,7 @@ axiosInstance.interceptors.response.use(
       isRefreshing = false
       tokenStorage.clearAll()
       window.location.href = '/login'
-      return Promise.reject(buildApiError(error))
+      throw buildApiError(error)
     }
 
     try {
@@ -121,21 +123,26 @@ axiosInstance.interceptors.response.use(
         { refreshToken },
         { headers: { 'Content-Type': 'application/json' } },
       )
+
       const { accessToken, refreshToken: newRefreshToken } = response.data.data
       tokenStorage.setTokens(accessToken, newRefreshToken)
 
-      /* Notifier le store Zustand du nouveau token */
       window.dispatchEvent(new CustomEvent('geoc:token-refreshed', { detail: { accessToken } }))
 
       processPendingQueue(null, accessToken)
 
       originalRequest.headers.Authorization = `Bearer ${accessToken}`
-      return axiosInstance(originalRequest)
+      return await axiosInstance(originalRequest)
     } catch (refreshError) {
       processPendingQueue(refreshError, null)
       tokenStorage.clearAll()
       window.location.href = '/login'
-      return Promise.reject(refreshError)
+
+      if (refreshError instanceof Error) {
+        throw refreshError
+      }
+
+      throw new Error('Unable to refresh token')
     } finally {
       isRefreshing = false
     }

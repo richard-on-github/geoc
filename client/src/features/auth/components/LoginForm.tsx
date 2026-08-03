@@ -23,7 +23,13 @@ export function LoginForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-5">
+    <form
+      onSubmit={(e) => {
+        void handleSubmit(onSubmit)(e)
+      }}
+      noValidate
+      className="space-y-5"
+    >
       <div>
         <h2 className="text-xl font-semibold text-[hsl(var(--foreground))]">Connexion</h2>
         <p className="mt-1 text-sm text-[hsl(var(--muted-foreground))]">
