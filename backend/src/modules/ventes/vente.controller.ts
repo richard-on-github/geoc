@@ -2,7 +2,7 @@ import type { Request, Response, NextFunction } from "express";
 import { venteService } from "./vente.service.js";
 import { successResponse } from "../../utils/response.js";
 import { HTTP_STATUS } from "../../constants/http-status.js";
-import type { VenteQueryParams } from "./vente.interface.js";
+import type { ImportVenteBody, VenteQueryParams } from "./vente.interface.js";
 import { parseExcelToVenteRows } from "../../utils/excel-parser.js";
 import { ApiError } from "../../utils/ApiError.js";
 
@@ -18,22 +18,25 @@ export const venteController = {
       throw ApiError.badRequest("Aucun fichier n'a été fourni");
     }
 
+    const { periode } = req.body as ImportVenteBody;
+
     const fileBuffer = req.file.buffer;
     const parsedRows = await parseExcelToVenteRows(fileBuffer);
 
     const result = await venteService.importVentes(
-        fileBuffer,
-        parsedRows,
-        req.file.originalname,
-        req.user!.id,
-        req.ip,
+      fileBuffer,
+      parsedRows,
+      req.file.originalname,
+      periode,
+      req.user!.id,
+      req.ip,
     );
 
     successResponse(
-        res,
-        HTTP_STATUS.CREATED,
-        `${result.count} lignes ont été importées et réconciliées avec succès.`,
-        result,
+      res,
+      HTTP_STATUS.CREATED,
+      `${result.count} lignes ont été importées et réconciliées avec succès pour la période ${periode}.`,
+      result,
     );
   },
 
@@ -41,26 +44,43 @@ export const venteController = {
     const { periode } = req.body;
 
     const result = await venteService.cloturerMois(
-        periode,
-        req.user!.id,
-        req.ip,
+      periode,
+      req.user!.id,
+      req.ip,
     );
 
     successResponse(
-        res,
-        HTTP_STATUS.CREATED,
-        `Clôture mensuelle pour la période ${periode} effectuée avec succès.`,
-        result,
+      res,
+      HTTP_STATUS.CREATED,
+      `Clôture mensuelle pour la période ${periode} effectuée avec succès.`,
+      result,
+    );
+  },
+
+  async annulerCloture(req: Request, res: Response, next: NextFunction) {
+    const { periode } = req.params as { periode: string };
+
+    const result = await venteService.annulerCloture(
+      periode,
+      req.user!.id,
+      req.ip,
+    );
+
+    successResponse(
+      res,
+      HTTP_STATUS.OK,
+      `La clôture de la période ${periode} a été annulée avec succès.`,
+      result,
     );
   },
 
   async getClotures(req: Request, res: Response, next: NextFunction) {
     const result = await venteService.getClotures();
     successResponse(
-        res,
-        HTTP_STATUS.OK,
-        "Liste des clôtures mensuelles récupérée avec succès.",
-        result,
+      res,
+      HTTP_STATUS.OK,
+      "Liste des clôtures mensuelles récupérée avec succès.",
+      result,
     );
   },
 };

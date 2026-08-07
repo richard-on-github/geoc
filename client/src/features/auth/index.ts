@@ -5,7 +5,6 @@ export type {
   AuthTokens,
   LoginPayload,
   ChangePasswordPayload,
-  ResetPasswordRequestPayload,
   ResetPasswordPayload,
   LoginData,
   RefreshTokenData,

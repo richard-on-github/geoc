@@ -8,6 +8,7 @@ import { RoleSelect } from '@/shared/components/forms/RoleSelect'
 import { PermissionsSelector } from '@/shared/components/forms/PermissionsSelector'
 import { AgenceSelect } from '@/shared/components/forms/AgenceSelect' // nouvel import
 import { Field } from '@/shared/components/forms/Field'
+import { type CreateUserPayload } from '../types' // Import du type de payload
 
 const inputClass =
   'w-full rounded-[var(--radius)] border border-[hsl(var(--input))] bg-[hsl(var(--background))] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[hsl(var(--ring))] focus:ring-offset-1 disabled:opacity-50 aria-invalid:border-[hsl(var(--destructive))]'
@@ -25,12 +26,20 @@ export function CreateUserPage() {
     resolver: zodResolver(createUserSchema),
     defaultValues: {
       permissionIds: [],
-      agenceId: null, // valeur par défaut
+      agenceId: null,
+      telephone: '', // Initialisation explicite
     },
   })
 
   const onSubmit = (values: CreateUserFormValues) => {
-    create(values, {
+    const payload: CreateUserPayload = {
+      ...values,
+      telephone:
+        values.telephone === '' || values.telephone === undefined ? null : values.telephone,
+      agenceId: values.agenceId === undefined ? null : values.agenceId,
+    }
+
+    create(payload, {
       onSuccess: () => {
         void navigate('/users')
       },
@@ -109,7 +118,7 @@ export function CreateUserPage() {
           <Field id="roleId" label="Rôle" error={errors.roleId?.message}>
             <RoleSelect
               id="roleId"
-              className={inputClass}
+              // className={inputClass}
               aria-invalid={!!errors.roleId}
               disabled={isPending}
               {...register('roleId')}

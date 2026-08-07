@@ -14,6 +14,9 @@ export const venteRepository = {
       dateFin,
       clotureId,
       nonClotureesOnly,
+      jour,
+      mois,
+      annee,
       sortBy = "dateDebut",
       sortOrder = "desc",
     } = params;
@@ -33,12 +36,12 @@ export const venteRepository = {
 
     if (agenceNom) where.agenceNom = agenceNom;
 
-    if (params.nonClotureesOnly) {
+    if (nonClotureesOnly) {
       where.clotureId = null;
     }
 
-    if (params.clotureId) {
-      where.clotureId = params.clotureId;
+    if (clotureId) {
+      where.clotureId = clotureId;
     }
 
     if (dateDebut || dateFin) {
@@ -46,6 +49,12 @@ export const venteRepository = {
       if (dateDebut) where.dateDebut.gte = new Date(dateDebut);
       if (dateFin) where.dateDebut.lte = new Date(dateFin);
     }
+
+    // Filtres indépendants de la plage dateDebut/dateFin : jour de l'année,
+    // mois ou année, calculés une fois pour toutes à l'import.
+    if (jour) where.jourAnnee = jour;
+    if (mois) where.mois = mois;
+    if (annee) where.annee = annee;
 
     const [ventes, total] = await Promise.all([
       prisma.vente.findMany({
@@ -65,6 +74,30 @@ export const venteRepository = {
     return prisma.venteImportLog.findUnique({
       where: { fileHash },
     });
+  },
+
+  /**
+   * Retourne les couples (mois, année) distincts pour lesquels il existe au moins
+   * une vente non clôturée. Sert à vérifier qu'aucun mois antérieur au mois ciblé
+   * par un import n'est resté ouvert (règle : on ne peut pas "sauter" un mois).
+   */
+  async findMoisAnneeNonClotures(): Promise<Array<{ mois: number; annee: number }>> {
+    const rows = await prisma.vente.findMany({
+      where: { clotureId: null },
+      select: { mois: true, annee: true },
+      distinct: ["mois", "annee"],
+    });
+    return rows;
+  },
+
+  /** Compte le nombre de ventes déjà existantes (tous statuts confondus) pour un mois/année donné. */
+  async countByMoisAnnee(mois: number, annee: number): Promise<number> {
+    return prisma.vente.count({ where: { mois, annee } });
+  },
+
+  /** Ventes non clôturées d'un mois/année donné, utilisées pour construire une clôture. */
+  async findNonClotureesByMoisAnnee(mois: number, annee: number) {
+    return prisma.vente.findMany({ where: { mois, annee, clotureId: null } });
   },
 
   async bulkImport(

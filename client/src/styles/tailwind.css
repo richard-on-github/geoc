@@ -1,31 +1,26 @@
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&display=swap');
-@import "tailwindcss";
-
-/* =========================================================
-   GEOC — Design System Tokens
-   LONATO Togo — Vert institutionnel
-   ========================================================= */
+@import 'tailwindcss';
 
 @theme {
   /* --------------------------------------------------
-     Couleurs de marque — Vert institutionnel LONATO
+     Palette Brand personnalisée (Base: #00843D)
      -------------------------------------------------- */
-  --color-brand-50:  #f0faf4;
-  --color-brand-100: #d6f5e3;
-  --color-brand-200: #aeeac8;
-  --color-brand-300: #78d8a7;
-  --color-brand-400: #44c083;
-  --color-brand-500: #22a366;   /* Vert primaire */
-  --color-brand-600: #178450;
-  --color-brand-700: #146941;
-  --color-brand-800: #135336;
-  --color-brand-900: #11452e;
-  --color-brand-950: #082a1c;
+  --color-brand-50: #e6f3ec;
+  --color-brand-100: #cce7d8;
+  --color-brand-200: #99ceb2;
+  --color-brand-300: #66b68b;
+  --color-brand-400: #339d64;
+  --color-brand-500: #00843d; /* Vert primaire principal */
+  --color-brand-600: #10723a;
+  --color-brand-700: #20603d; /* Vert secondaire / sombre */
+  --color-brand-800: #184b30;
+  --color-brand-900: #113623;
+  --color-brand-950: #081d12;
 
   /* --------------------------------------------------
      Couleurs neutres — Gris légèrement chauds
      -------------------------------------------------- */
-  --color-neutral-50:  #f9fafb;
+  --color-neutral-50: #f9fafb;
   --color-neutral-100: #f3f4f6;
   --color-neutral-200: #e5e7eb;
   --color-neutral-300: #d1d5db;
@@ -40,22 +35,22 @@
   /* --------------------------------------------------
      Couleurs sémantiques
      -------------------------------------------------- */
-  --color-success-50:  #f0fdf4;
+  --color-success-50: #f0fdf4;
   --color-success-500: #22c55e;
   --color-success-600: #16a34a;
   --color-success-700: #15803d;
 
-  --color-warning-50:  #fffbeb;
+  --color-warning-50: #fffbeb;
   --color-warning-500: #f59e0b;
   --color-warning-600: #d97706;
   --color-warning-700: #b45309;
 
-  --color-danger-50:  #fef2f2;
+  --color-danger-50: #fef2f2;
   --color-danger-500: #ef4444;
   --color-danger-600: #dc2626;
   --color-danger-700: #b91c1c;
 
-  --color-info-50:  #eff6ff;
+  --color-info-50: #eff6ff;
   --color-info-500: #3b82f6;
   --color-info-600: #2563eb;
   --color-info-700: #1d4ed8;
@@ -63,55 +58,55 @@
   /* --------------------------------------------------
      Typography
      -------------------------------------------------- */
-  --font-sans: "Outfit", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --font-sans: 'Outfit', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
 
-  --font-size-xs:   0.75rem;    /* 12px */
-  --font-size-sm:   0.875rem;   /* 14px */
-  --font-size-base: 1rem;       /* 16px */
-  --font-size-lg:   1.125rem;   /* 18px */
-  --font-size-xl:   1.25rem;    /* 20px */
-  --font-size-2xl:  1.5rem;     /* 24px */
-  --font-size-3xl:  1.875rem;   /* 30px */
+  --font-size-xs: 0.75rem; /* 12px */
+  --font-size-sm: 0.875rem; /* 14px */
+  --font-size-base: 1rem; /* 16px */
+  --font-size-lg: 1.125rem; /* 18px */
+  --font-size-xl: 1.25rem; /* 20px */
+  --font-size-2xl: 1.5rem; /* 24px */
+  --font-size-3xl: 1.875rem; /* 30px */
 
   /* --------------------------------------------------
      Spacing
      -------------------------------------------------- */
-  --spacing: 0.25rem;   /* base unit = 4px */
+  --spacing: 0.25rem; /* base unit = 4px */
 
   /* --------------------------------------------------
      Border radius
      -------------------------------------------------- */
-  --radius-sm:  0.25rem;   /* 4px */
-  --radius:     0.5rem;    /* 8px  — défaut composants */
-  --radius-md:  0.625rem;  /* 10px */
-  --radius-lg:  0.75rem;   /* 12px — cartes */
-  --radius-xl:  1rem;      /* 16px */
+  --radius-sm: 0.25rem; /* 4px */
+  --radius: 0.5rem; /* 8px  — défaut composants */
+  --radius-md: 0.625rem; /* 10px */
+  --radius-lg: 0.75rem; /* 12px — cartes */
+  --radius-xl: 1rem; /* 16px */
   --radius-full: 9999px;
 
   /* --------------------------------------------------
      Shadows — légères, professionnelles
      -------------------------------------------------- */
-  --shadow-xs:  0 1px 2px 0 rgb(0 0 0 / 0.05);
-  --shadow-sm:  0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
-  --shadow:     0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-  --shadow-md:  0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-  --shadow-lg:  0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+  --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-md: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
 
   /* --------------------------------------------------
      Transitions
      -------------------------------------------------- */
-  --transition-fast:   150ms ease;
-  --transition-base:   200ms ease;
-  --transition-slow:   300ms ease;
+  --transition-fast: 150ms ease;
+  --transition-base: 200ms ease;
+  --transition-slow: 300ms ease;
 
   /* --------------------------------------------------
      Layout
      -------------------------------------------------- */
-  --sidebar-width:          240px;
+  --sidebar-width: 240px;
   --sidebar-collapsed-width: 64px;
-  --topbar-height:           56px;
-  --content-max-width:      1400px;
+  --topbar-height: 56px;
+  --content-max-width: 1400px;
 }
 
 /* =========================================================
@@ -119,90 +114,98 @@
    Utilisées par shadcn/ui et les composants métier
    ========================================================= */
 :root {
-  --background:    0 0% 100%;
-  --foreground:    222.2 84% 4.9%;
+  --background: 0 0% 100%;
+  --foreground: 222.2 84% 4.9%;
 
-  --card:          0 0% 100%;
+  --card: 0 0% 100%;
   --card-foreground: 222.2 84% 4.9%;
 
-  --popover:       0 0% 100%;
+  --popover: 0 0% 100%;
   --popover-foreground: 222.2 84% 4.9%;
 
-  --primary:       153 63% 38%;      /* brand-500 en HSL */
+  /* brand-500 (#00843D) en HSL */
+  --primary: 148 100% 26%;
   --primary-foreground: 0 0% 100%;
 
-  --secondary:     220 14.3% 95.9%;
+  --secondary: 220 14.3% 95.9%;
   --secondary-foreground: 220.9 39.3% 11%;
 
-  --muted:         220 14.3% 95.9%;
+  --muted: 220 14.3% 95.9%;
   --muted-foreground: 220 8.9% 46.1%;
 
-  --accent:        220 14.3% 95.9%;
+  --accent: 220 14.3% 95.9%;
   --accent-foreground: 220.9 39.3% 11%;
 
-  --destructive:   0 84.2% 60.2%;
+  --destructive: 0 84.2% 60.2%;
   --destructive-foreground: 0 0% 98%;
 
-  --border:        220 13% 91%;
-  --input:         220 13% 91%;
-  --ring:          153 63% 38%;
+  --border: 220 13% 91%;
+  --input: 220 13% 91%;
+
+  /* Focus ring basé sur #00843D */
+  --ring: 148 100% 26%;
 
   --radius: 0.5rem;
 
   /* Sidebar */
-  --sidebar-background:      153 34% 16%;   /* brand-900 foncé */
-  --sidebar-foreground:      153 15% 85%;
-  --sidebar-primary:         153 63% 55%;   /* brand-400 */
+  /* brand-700 (#20603D) en HSL pour le fond de la sidebar */
+  --sidebar-background: 147 50% 25%;
+  --sidebar-foreground: 148 20% 90%;
+  /* brand-400 (#339d64) pour les éléments primaires de la sidebar */
+  --sidebar-primary: 148 51% 41%;
   --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent:          153 30% 22%;
-  --sidebar-accent-foreground: 153 15% 90%;
-  --sidebar-border:          153 20% 22%;
-  --sidebar-ring:            153 63% 38%;
+  --sidebar-accent: 148 30% 32%;
+  --sidebar-accent-foreground: 148 20% 95%;
+  --sidebar-border: 148 30% 20%;
+  --sidebar-ring: 148 100% 26%;
 }
 
 .dark {
-  --background:    222.2 84% 4.9%;
-  --foreground:    210 40% 98%;
+  --background: 222.2 84% 4.9%;
+  --foreground: 210 40% 98%;
 
-  --card:          222.2 84% 4.9%;
+  --card: 222.2 84% 4.9%;
   --card-foreground: 210 40% 98%;
 
-  --popover:       222.2 84% 4.9%;
+  --popover: 222.2 84% 4.9%;
   --popover-foreground: 210 40% 98%;
 
-  --primary:       153 63% 48%;
+  /* Légèrement éclairci en dark mode pour la lisibilité ou conservé tel quel */
+  --primary: 148 70% 35%;
   --primary-foreground: 0 0% 100%;
 
-  --secondary:     217.2 32.6% 17.5%;
+  --secondary: 217.2 32.6% 17.5%;
   --secondary-foreground: 210 40% 98%;
 
-  --muted:         217.2 32.6% 17.5%;
+  --muted: 217.2 32.6% 17.5%;
   --muted-foreground: 215 20.2% 65.1%;
 
-  --accent:        217.2 32.6% 17.5%;
+  --accent: 217.2 32.6% 17.5%;
   --accent-foreground: 210 40% 98%;
 
-  --destructive:   0 62.8% 30.6%;
+  --destructive: 0 62.8% 30.6%;
   --destructive-foreground: 210 40% 98%;
 
-  --border:        217.2 32.6% 17.5%;
-  --input:         217.2 32.6% 17.5%;
-  --ring:          153 63% 48%;
+  --border: 217.2 32.6% 17.5%;
+  --input: 217.2 32.6% 17.5%;
+  --ring: 148 70% 35%;
 
-  --sidebar-background:      222.2 84% 7%;
-  --sidebar-foreground:      210 30% 80%;
-  --sidebar-primary:         153 63% 48%;
+  --sidebar-background: 222.2 84% 7%;
+  --sidebar-foreground: 210 30% 80%;
+  --sidebar-primary: 148 70% 35%;
   --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent:          222.2 60% 12%;
+  --sidebar-accent: 222.2 60% 12%;
   --sidebar-accent-foreground: 210 30% 90%;
-  --sidebar-border:          222.2 40% 15%;
-  --sidebar-ring:            153 63% 48%;
+  --sidebar-border: 222.2 40% 15%;
+  --sidebar-ring: 148 70% 35%;
 }
 
 /* =========================================================
    Base styles
    ========================================================= */
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
 }
 

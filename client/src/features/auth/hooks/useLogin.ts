@@ -86,12 +86,12 @@ export function useLogin() {
           if (typeof responseData === 'object' && responseData !== null) {
             const record = responseData as Record<string, unknown>
 
-            if (typeof record.message === 'string') {
-              return record.message
+            if (typeof record['message'] === 'string') {
+              return record['message']
             }
 
-            if (typeof record.error === 'string') {
-              return record.error
+            if (typeof record['error'] === 'string') {
+              return record['error']
             }
           }
 

@@ -28,9 +28,12 @@ export function UsersListPage() {
   const roles = rolesData?.items ?? []
   const agences = agencesData?.items ?? []
 
-  const handleViewDetail = useCallback((id: string) => {
-    void navigate(`/users/${id}`)
-  }, [navigate])
+  const handleViewDetail = useCallback(
+    (id: string) => {
+      void navigate(`/users/${id}`)
+    },
+    [navigate],
+  )
   const handleToggleStatus = useCallback(
     (user: User) => {
       toggleStatus({ id: user.id, actif: !user.isActive })
@@ -146,7 +149,7 @@ export function UsersListPage() {
 
         <UsersTable
           search={search}
-          statusFilter={statusFilter}
+          {...(statusFilter !== undefined ? { statusFilter } : {})}
           roleFilter={roleFilter}
           agenceFilter={agenceFilter}
           onEdit={() => void 0}

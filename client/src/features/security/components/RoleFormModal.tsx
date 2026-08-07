@@ -30,7 +30,7 @@ function Field({
 }: {
   id: string
   label: string
-  error?: string
+  error?: string | undefined
   children: React.ReactNode
 }) {
   return (
@@ -103,13 +103,39 @@ export function RoleFormModal({ mode, role, onClose }: RoleFormModalProps) {
 
   const onSubmit = (values: FormValues) => {
     if (mode === 'create') {
-      createRole(values as CreateRoleFormValues, { onSuccess: onClose })
+      const createValues = values as CreateRoleFormValues
+      const payload = {
+        nom: createValues.nom,
+        code: createValues.code,
+        dataScope: createValues.dataScope,
+        niveau: createValues.niveau,
+        permissionIds: createValues.permissionIds,
+        ...(createValues.description !== undefined && createValues.description !== ''
+          ? { description: createValues.description }
+          : {}),
+      }
+      createRole(payload, { onSuccess: onClose })
     } else {
-      updateRole(values, { onSuccess: onClose })
+      const updateValues = values as UpdateRoleFormValues
+
+      const payload = {
+        nom: updateValues.nom ?? '',
+        code: updateValues.code ?? '',
+        dataScope: updateValues.dataScope ?? 'GLOBAL',
+        niveau: updateValues.niveau ?? 0,
+        permissionIds: updateValues.permissionIds ?? [],
+        actif: updateValues.actif ?? false,
+        ...(updateValues.description !== undefined && updateValues.description !== ''
+          ? { description: updateValues.description }
+          : {}),
+      }
+
+      updateRole(payload, { onSuccess: onClose })
     }
   }
 
-  const title = mode === 'create' ? 'Créer un rôle' : `Modifier — ${role !== undefined ? role.nom : ''}`
+  const title =
+    mode === 'create' ? 'Créer un rôle' : `Modifier — ${role !== undefined ? role.nom : ''}`
   const formErrors = errors as Record<string, { message?: string }>
 
   return (
@@ -248,7 +274,7 @@ export function RoleFormModal({ mode, role, onClose }: RoleFormModalProps) {
                   render={({ field }) => (
                     <PermissionMatrix
                       permissions={permissions}
-                      selected={field.value}
+                      selected={field.value ?? []}
                       onChange={field.onChange}
                       disabled={isPending}
                     />

@@ -32,7 +32,18 @@ export function CreateRolePage() {
   })
 
   const onSubmit = (values: CreateRoleFormValues) => {
-    createRole(values, {
+    const payload = {
+      nom: values.nom,
+      code: values.code,
+      dataScope: values.dataScope,
+      niveau: values.niveau,
+      permissionIds: values.permissionIds,
+      ...(values.description !== undefined && values.description !== ''
+        ? { description: values.description }
+        : {}),
+    }
+
+    createRole(payload, {
       onSuccess: () => {
         void navigate('/security/roles')
       },

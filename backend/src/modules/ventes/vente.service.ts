@@ -7,6 +7,12 @@ import crypto from "crypto";
 import type { VenteQueryParams, ParsedVenteRow } from "./vente.interface.js";
 import { getPaginationMeta } from "../../utils/pagination.js";
 import { contextStorage } from "../../utils/context.js";
+import {
+  computeJourAnneeInfo,
+  getPeriodePrecedente,
+  getPeriodeSuivante,
+  periodeToMoisAnnee,
+} from "../../utils/date-vente.js";
 
 export const venteService = {
   async getAll(params: VenteQueryParams) {
@@ -20,11 +26,60 @@ export const venteService = {
     fileBuffer: Buffer,
     parsedRows: ParsedVenteRow[],
     fileName: string,
+    periode: string,
     actorId: string,
     ip?: string,
   ) {
     if (!parsedRows.length) {
       throw ApiError.badRequest("Le fichier ne contient aucune donnée valide.");
+    }
+
+    const { mois: moisCible, annee: anneeCible } = periodeToMoisAnnee(periode);
+
+    // 1. La période ciblée ne doit pas être déjà clôturée : on ne peut plus
+    //    ajouter de ventes à un mois clôturé.
+    const clotureExistante = await prisma.venteCloture.findUnique({
+      where: { periode },
+    });
+    if (clotureExistante) {
+      throw ApiError.badRequest(
+        `La période ${periode} est déjà clôturée. Annulez d'abord la clôture pour pouvoir importer de nouvelles ventes sur ce mois.`,
+      );
+    }
+
+    // 2. Toute ligne du fichier doit appartenir au mois pour lequel on l'importe,
+    //    sinon on refuse le chargement dans son intégralité.
+    const lignesHorsPeriode = parsedRows.filter((row) => {
+      const info = computeJourAnneeInfo(row.dateDebut);
+      return info.mois !== moisCible || info.annee !== anneeCible;
+    });
+    if (lignesHorsPeriode.length > 0) {
+      throw ApiError.badRequest(
+        `Le fichier contient ${lignesHorsPeriode.length} ligne(s) dont la date de début n'appartient pas à la période ${periode}. Le chargement a été refusé.`,
+      );
+    }
+
+    // 3. On ne peut passer à un nouveau mois que si le mois précédent a été clôturé
+    //    (règle appliquée uniquement lors du tout premier import d'un mois donné ;
+    //    les imports suivants sur un mois déjà entamé et toujours ouvert sont libres).
+    const ventesExistantesPourPeriode = await venteRepository.countByMoisAnnee(
+      moisCible,
+      anneeCible,
+    );
+
+    if (ventesExistantesPourPeriode === 0) {
+      const existeAuMoinsUneVente = (await prisma.vente.count()) > 0;
+      if (existeAuMoinsUneVente) {
+        const periodePrecedente = getPeriodePrecedente(periode);
+        const clotureprecedente = await prisma.venteCloture.findUnique({
+          where: { periode: periodePrecedente },
+        });
+        if (!clotureprecedente) {
+          throw ApiError.badRequest(
+            `Vous devez d'abord clôturer la période ${periodePrecedente} avant de pouvoir charger la période ${periode}.`,
+          );
+        }
+      }
     }
 
     const fileHash = crypto
@@ -105,6 +160,8 @@ export const venteService = {
         matchedAgenceId = agenceMap.get(searchKey) || null;
       }
 
+      const { jourAnnee, mois, annee } = computeJourAnneeInfo(row.dateDebut);
+
       return {
         agenceId: matchedAgenceId,
         agenceNom: row.agenceNomBrut,
@@ -117,6 +174,9 @@ export const venteService = {
         totalSolde: row.totalSolde,
         dateDebut: row.dateDebut,
         dateFin: row.dateFin,
+        jourAnnee,
+        mois,
+        annee,
       };
     });
 
@@ -136,7 +196,7 @@ export const venteService = {
       entityId: result.importLog.id,
       userId: actorId,
       ip: ip ?? "",
-      message: `Import de ${result.count} ventes via le fichier ${fileName}`,
+      message: `Import de ${result.count} ventes via le fichier ${fileName} pour la période ${periode}`,
     });
 
     return result;
@@ -151,12 +211,19 @@ export const venteService = {
       throw ApiError.badRequest(`La période ${periode} a déjà été clôturée.`);
     }
 
-    const ventesACloturer = await prisma.vente.findMany({
-      where: { clotureId: null },
-    });
+    const { mois, annee } = periodeToMoisAnnee(periode);
+
+    // On ne clôture que les ventes appartenant explicitement au mois ciblé
+    // (calculé via jourAnnee/mois/annee), et non plus "toutes les ventes ouvertes".
+    const ventesACloturer = await venteRepository.findNonClotureesByMoisAnnee(
+      mois,
+      annee,
+    );
 
     if (ventesACloturer.length === 0) {
-      throw ApiError.badRequest("Aucune vente à clôturer pour cette période.");
+      throw ApiError.badRequest(
+        `Aucune vente à clôturer pour la période ${periode}.`,
+      );
     }
 
     const totalVentes = ventesACloturer.reduce(
@@ -197,7 +264,7 @@ export const venteService = {
         });
 
         await tx.vente.updateMany({
-          where: { clotureId: null },
+          where: { mois, annee, clotureId: null },
           data: { clotureId: cloture.id },
         });
 
@@ -215,6 +282,57 @@ export const venteService = {
     });
 
     return result;
+  },
+
+  /**
+   * Annule la clôture d'un mois. N'est autorisé que si aucune vente n'existe
+   * encore pour le mois suivant (sinon on romprait la chaîne de clôtures
+   * séquentielle mois par mois).
+   */
+  async annulerCloture(periode: string, actorId: string, ip?: string) {
+    const cloture = await prisma.venteCloture.findUnique({
+      where: { periode },
+    });
+
+    if (!cloture) {
+      throw ApiError.notFound(
+        `Aucune clôture trouvée pour la période ${periode}.`,
+      );
+    }
+
+    const periodeSuivante = getPeriodeSuivante(periode);
+    const { mois: moisSuivant, annee: anneeSuivant } =
+      periodeToMoisAnnee(periodeSuivante);
+
+    const ventesMoisSuivant = await venteRepository.countByMoisAnnee(
+      moisSuivant,
+      anneeSuivant,
+    );
+
+    if (ventesMoisSuivant > 0) {
+      throw ApiError.badRequest(
+        `Impossible d'annuler la clôture de la période ${periode} : des ventes existent déjà pour la période suivante (${periodeSuivante}). Celles-ci doivent être supprimées au préalable.`,
+      );
+    }
+
+    await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+      await tx.vente.updateMany({
+        where: { clotureId: cloture.id },
+        data: { clotureId: null },
+      });
+      await tx.venteCloture.delete({ where: { id: cloture.id } });
+    });
+
+    await logAudit({
+      action: AuditAction.SUPPRESSION,
+      entity: "VenteCloture",
+      entityId: cloture.id,
+      userId: actorId,
+      ip: ip ?? "",
+      message: `Annulation de la clôture mensuelle de la période ${periode} (${cloture.nbLignes} ventes rouvertes).`,
+    });
+
+    return { periode, annule: true };
   },
 
   async getClotures() {

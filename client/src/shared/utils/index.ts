@@ -7,3 +7,5 @@ export {
   truncate,
   formatCurrency,
 } from './format'
+
+export * from './date'

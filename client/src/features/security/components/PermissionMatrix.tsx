@@ -1,4 +1,3 @@
-// features/security/components/PermissionMatrix.tsx
 import { useMemo } from 'react'
 import { cn } from '@/shared/lib'
 import { RESOURCE_LABELS } from '../constants'
@@ -6,7 +5,7 @@ import type { Permission, PermissionGroup } from '../types'
 
 interface PermissionMatrixProps {
   permissions: Permission[]
-  selected: string[] // IDs sélectionnés
+  selected: string[] | undefined
   onChange: (ids: string[]) => void
   disabled?: boolean
   readonly?: boolean
@@ -34,7 +33,7 @@ function groupPermissions(permissions: Permission[]): PermissionGroup[] {
 
 export function PermissionMatrix({
   permissions,
-  selected,
+  selected = [],
   onChange,
   disabled = false,
   readonly = false,
@@ -178,11 +177,13 @@ export function PermissionMatrix({
                       {/* <p className="mt-0.5 font-mono text-xs text-[hsl(var(--muted-foreground))]">
                         {perm.code}
                       </p> */}
-                      {perm.description !== null && perm.description !== undefined && perm.description !== '' && (
-                        <p className="mt-0.5 text-xs text-[hsl(var(--muted-foreground))]">
-                          {perm.description}
-                        </p>
-                      )}
+                      {perm.description !== null &&
+                        perm.description !== undefined &&
+                        perm.description !== '' && (
+                          <p className="mt-0.5 text-xs text-[hsl(var(--muted-foreground))]">
+                            {perm.description}
+                          </p>
+                        )}
                     </div>
                   </label>
                 )

@@ -7,7 +7,12 @@ import { requirePermissions } from "../../middlewares/permission.middleware.js";
 import { initRequestContext } from "../../middlewares/context.middleware.js";
 import { validate } from "../../middlewares/validate.middleware.js";
 import { asyncHandler } from "../../utils/asyncHandler.js";
-import {cloturerVenteSchema, venteQuerySchema} from "./vente.schema.js";
+import {
+  cloturerVenteSchema,
+  importVenteBodySchema,
+  periodeParamsSchema,
+  venteQuerySchema,
+} from "./vente.schema.js";
 import { ROUTES } from "../../constants/routes.js";
 
 const router = Router();
@@ -27,41 +32,49 @@ router.post(
   ROUTES.VENTE.IMPORT,
   requirePermissions("vente.import"),
   upload.single("file"),
+  validate({ body: importVenteBodySchema }),
   asyncHandler(venteController.importFile),
 );
 
 router.post(
-    ROUTES.VENTE.CLOTURER,
-    requirePermissions("vente.cloture"),
-    validate({ body: cloturerVenteSchema }),
-    asyncHandler(venteController.cloturer)
+  ROUTES.VENTE.CLOTURER,
+  requirePermissions("vente.cloture"),
+  validate({ body: cloturerVenteSchema }),
+  asyncHandler(venteController.cloturer),
+);
+
+router.delete(
+  "/clotures/:periode",
+  requirePermissions("vente.cloture"),
+  validate({ params: periodeParamsSchema }),
+  asyncHandler(venteController.annulerCloture),
 );
 
 router.get(
-    ROUTES.VENTE.CLOTURES,
-    requirePermissions("vente.read"),
-    asyncHandler(venteController.getClotures)
+  ROUTES.VENTE.CLOTURES,
+  requirePermissions("vente.read"),
+  asyncHandler(venteController.getClotures),
 );
 
 router.get(
-    "/export/csv",
-    requirePermissions("vente.export.csv"),
-    validate({ query: venteQuerySchema }),
-    asyncHandler(venteExportController.export)
+  "/export/csv",
+  requirePermissions("vente.export.csv"),
+  validate({ query: venteQuerySchema }),
+  asyncHandler(venteExportController.export),
 );
 
 router.get(
-    "/export/excel",
-    requirePermissions("vente.export.excel"),
-    validate({ query: venteQuerySchema }),
-    asyncHandler(venteExportController.export)
+  "/export/excel",
+  requirePermissions("vente.export.excel"),
+  validate({ query: venteQuerySchema }),
+  asyncHandler(venteExportController.export),
 );
 
 router.get(
-    "/export/pdf",
-    requirePermissions("vente.export.pdf"),
-    validate({ query: venteQuerySchema }),
-    asyncHandler(venteExportController.export)
+  "/export/pdf",
+  requirePermissions("vente.export.pdf"),
+  validate({ query: venteQuerySchema }),
+  asyncHandler(venteExportController.export),
 );
 
 export { router as venteRouter };

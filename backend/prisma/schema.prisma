@@ -241,6 +241,10 @@ model Vente {
   dateDebut DateTime
   dateFin   DateTime
 
+  jourAnnee Int
+  mois      Int
+  annee     Int
+
   importId  String?
   importLog VenteImportLog? @relation(fields: [importId], references: [id], onDelete: SetNull)
 

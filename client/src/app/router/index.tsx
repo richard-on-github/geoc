@@ -9,9 +9,6 @@ import { DashboardLayout } from '@/app/layouts/dashboard/DashboardLayout'
 const LoginPage = lazy(() =>
   import('@/features/auth/pages/LoginPage').then((m) => ({ default: m.LoginPage })),
 )
-const ResetPasswordPage = lazy(() =>
-  import('@/features/auth/pages/ResetPasswordPage').then((m) => ({ default: m.ResetPasswordPage })),
-)
 
 /* ---- Pages Dashboard ---- */
 const DashboardPage = lazy(() =>
@@ -82,10 +79,7 @@ export const router = createBrowserRouter([
   /* Routes publiques */
   {
     element: <AuthLayout />,
-    children: [
-      { path: '/login', element: S(LoginPage) },
-      { path: '/reset-password', element: S(ResetPasswordPage) },
-    ],
+    children: [{ path: '/login', element: S(LoginPage) }],
   },
 
   /* Routes protégées */

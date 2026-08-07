@@ -16,6 +16,7 @@ import { Field } from '@/shared/components/forms/Field'
 import { RoleSelect } from '@/shared/components/forms/RoleSelect'
 import { PermissionsSelector } from '@/shared/components/forms/PermissionsSelector'
 import { AgenceSelect } from '@/shared/components/forms/AgenceSelect' // nouvel import
+import { type UpdateUserPayload } from '../types'
 
 const inputClass =
   'w-full rounded-[var(--radius)] border border-[hsl(var(--input))] bg-[hsl(var(--background))] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[hsl(var(--ring))] focus:ring-offset-1 disabled:opacity-50 aria-invalid:border-[hsl(var(--destructive))]'
@@ -37,17 +38,19 @@ export function UserDetailPage() {
     formState: { errors },
   } = useForm<UpdateUserFormValues>({
     resolver: zodResolver(updateUserSchema),
-    values: user
+    ...(user
       ? {
-          prenom: user.prenom,
-          nom: user.nom,
-          email: user.email,
-          telephone: user.telephone ?? '',
-          roleId: user.role.id,
-          permissionIds: user.permissions.map((p) => p.id),
-          agenceId: user.agenceId ?? '', // nouveau champ
+          values: {
+            prenom: user.prenom,
+            nom: user.nom,
+            email: user.email,
+            telephone: user.telephone ?? '',
+            roleId: user.role.id,
+            permissionIds: user.permissions.map((p) => p.id),
+            agenceId: user.agenceId ?? '',
+          },
         }
-      : undefined,
+      : {}),
   })
 
   const handleCancel = () => {
@@ -56,8 +59,17 @@ export function UserDetailPage() {
   }
 
   const onSubmit = (data: UpdateUserFormValues) => {
+    // CORRECTION TS2375 : Transformation explicite pour exactOptionalPropertyTypes sur UpdateUserPayload
+    const payload: UpdateUserPayload = {
+      ...data,
+      // Convertit chaîne vide ou undefined en null, sinon garde la chaîne
+      telephone: data.telephone === '' || data.telephone === undefined ? null : data.telephone,
+      // S'assure que agenceId est string ou null, pas undefined
+      agenceId: data.agenceId === undefined ? null : data.agenceId,
+    }
+
     updateUser(
-      { id, payload: data },
+      { id, payload }, // Utilisation du payload transformé
       {
         onSuccess: () => {
           setIsEditing(false)
@@ -65,7 +77,6 @@ export function UserDetailPage() {
       },
     )
   }
-
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -212,7 +223,7 @@ export function UserDetailPage() {
               <Field id="roleId" label="Rôle" error={errors.roleId?.message}>
                 <RoleSelect
                   id="roleId"
-                  className={inputClass}
+                  // className={inputClass}
                   aria-invalid={!!errors.roleId}
                   disabled={isUpdating}
                   {...register('roleId')}

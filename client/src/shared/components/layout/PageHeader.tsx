@@ -3,7 +3,7 @@ import { cn } from '@/shared/lib'
 
 interface PageHeaderProps {
   title: string
-  description?: string
+  description?: string | undefined
   actions?: ReactNode
   className?: string
 }
