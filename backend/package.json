@@ -4,6 +4,7 @@
   "description": "",
   "main": "src/server.ts",
   "scripts": {
+    "postinstall": "chmod +x node_modules/7zip-bin/linux/x64/7za 2>/dev/null || true",
     "dev": "tsx watch src/server.ts",
     "start": "node dist/src/server.js",
     "build": "tsc",
