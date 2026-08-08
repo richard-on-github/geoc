@@ -73,12 +73,12 @@ type PdfPrinterConstructor = new (
 ) => PdfPrinterInstance;
 
 const PdfPrinterClass = unwrap<PdfPrinterConstructor>(
-  require("pdfmake/src/printer"),
+  require("pdfmake/js/Printer"),
 );
 
 let VirtualFSClass: (new () => unknown) | null = null;
 try {
-  VirtualFSClass = unwrap<new () => unknown>(require("pdfmake/src/virtual-fs"));
+  VirtualFSClass = unwrap<new () => unknown>(require("pdfmake/js/virtual-fs"));
 } catch {
   VirtualFSClass = null;
 }
@@ -86,7 +86,7 @@ try {
 let URLResolverClass: (new (vfs?: unknown) => unknown) | null = null;
 try {
   URLResolverClass = unwrap<new (vfs?: unknown) => unknown>(
-    require("pdfmake/src/urlResolver"),
+    require("pdfmake/js/URLResolver"),
   );
 } catch {
   URLResolverClass = null;
