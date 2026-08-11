@@ -26,6 +26,7 @@ jobs:
             cd /var/www/apps/geoc/backend
             git pull origin main
             npm ci
+            npx prisma generate
             npx prisma migrate deploy
             chmod +x node_modules/7zip-bin/linux/x64/7za 2>/dev/null || true
             npm run build
