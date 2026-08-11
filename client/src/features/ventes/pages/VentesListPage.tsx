@@ -1,36 +1,3 @@
-// import { useState, useCallback } from 'react'
-// import { PageHeader } from '@/shared/components/layout/PageHeader'
-// import { VentesTable } from '../components/VentesTable'
-// import { VenteFilters } from '../components/VenteFilters'
-
-// interface VentesListFilters {
-//   search: string
-//   agenceId?: string
-//   dateDebut?: string
-//   dateFin?: string
-//   clotureId?: string
-//   nonClotureesOnly?: boolean
-// }
-
-// export function VentesListPage() {
-//   const [filters, setFilters] = useState<VentesListFilters>({
-//     search: '',
-//     nonClotureesOnly: false,
-//   })
-
-//   const handleFilterChange = useCallback((newFilters: VentesListFilters) => {
-//     setFilters(newFilters)
-//   }, [])
-
-//   return (
-//     <div>
-//       <PageHeader title="Ventes" description="Historique des ventes importées" />
-//       <VenteFilters onFilterChange={handleFilterChange} />
-//       <VentesTable filters={filters} />
-//     </div>
-//   )
-// }
-
 import { useState, useCallback } from 'react'
 import { PageHeader } from '@/shared/components/layout/PageHeader'
 import { VentesBrowser } from '../components/VentesBrowser'

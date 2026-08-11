@@ -705,7 +705,7 @@ export const venteExportService = {
           {
             width: "*",
             stack: [
-              { text: "LONATO", style: "brandName" },
+              { text: "Loterie Nationale Togolaise", style: "brandName" },
               { text: "Rapport des Ventes", style: "brandSubtitle" },
             ],
           },
@@ -737,7 +737,7 @@ export const venteExportService = {
             columns: [
               {
                 width: "*",
-                text: `Document confidentiel - Réf. ${metadata.reference} - © ${new Date().getFullYear()} Lonato`,
+                text: `Document confidentiel - Réf. ${metadata.reference} - © ${new Date().getFullYear()} Loterie Nationale Togolaise`,
                 style: "footerText",
               },
               {
@@ -803,7 +803,7 @@ export const venteExportService = {
           bold: true,
           color: COULEUR_AVERTISSEMENT,
         },
-        brandName: { fontSize: 14, bold: true, color: COULEUR_PRIMAIRE },
+        brandName: { fontSize: 11, bold: true, color: COULEUR_PRIMAIRE },
         brandSubtitle: { fontSize: 9, color: COULEUR_SECONDAIRE },
         pageIndicator: { fontSize: 8, color: "#555555" },
         footerText: { fontSize: 7, color: "#777777" },

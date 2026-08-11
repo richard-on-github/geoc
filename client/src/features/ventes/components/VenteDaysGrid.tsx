@@ -12,13 +12,6 @@ interface VenteDaysGridProps {
 
 const JOURS_SEMAINE = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim']
 
-/**
- * Grille des journées d'un mois. Chaque cellule affiche la "journée de
- * l'année" (jourAnnee, 1-366) plutôt que le simple quantième du mois (1-31) :
- * ex. le 3 février affiche "34", puisque c'est le 34e jour de l'année. La
- * disposition en semaines (avec décalage du 1er jour du mois) reste calquée
- * sur le mois affiché.
- */
 export function VenteDaysGrid({ annee, mois, filters, onSelect }: VenteDaysGridProps) {
   const nbJours = joursDansMois(annee, mois)
   const decalage = premierJourSemaine(annee, mois)

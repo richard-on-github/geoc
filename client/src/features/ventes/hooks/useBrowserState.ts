@@ -8,14 +8,6 @@ export interface VentePeriodeFilters {
   annee?: number
 }
 
-/**
- * État de navigation Jours/Mois/Années/Général, partagé entre VenteFilters
- * (qui en a besoin pour l'export et pour savoir quand afficher/masquer certains
- * contrôles) et VentesBrowser (qui en a besoin pour afficher la bonne vue).
- * Sorti dans un hook dédié plutôt que gardé local à VentesBrowser, précisément
- * pour que les deux composants partagent la même source de vérité sans la
- * dupliquer ni la faire remonter via des callbacks épars.
- */
 export function useVenteBrowserState() {
   const aujourdHui = new Date()
 

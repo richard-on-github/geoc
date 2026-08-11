@@ -10,15 +10,6 @@ export interface VenteAggregateBucket {
   totalVente: number
 }
 
-/**
- * Limite maximale de lignes agrégées côté client, alignée sur le plafond de
- * l'API (`limit` max = 1000, cf. vente.schema.ts backend). Au-delà, l'agrégat
- * affiché est partiel (voir `estPartiel`). Une évolution possible serait
- * d'exposer un endpoint d'agrégation dédié côté backend
- * (ex: GET /ventes/stats?annee=...&mois=...) pour ne plus dépendre de cette
- * limite, mais ce n'est pas nécessaire tant que les volumes mensuels/annuels
- * restent raisonnables.
- */
 const LIMITE_AGREGATION = 1000
 
 export interface UseVentesAggregateParams extends VenteFiltersState {

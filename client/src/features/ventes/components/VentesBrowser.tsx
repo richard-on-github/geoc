@@ -13,22 +13,6 @@ interface VentesBrowserProps {
   nav: VenteBrowserNav
 }
 
-/**
- * - "Jours" (vue par défaut) : grille des journées de l'année (numérotées
- *   1-366, groupées par mois affiché) pour le mois/année sélectionné. Cliquer
- *   sur une journée affiche la table des ventes de ce jour.
- * - "Mois" : va directement à la table des ventes du mois sélectionné (pas de
- *   grille intermédiaire). Le bouton de clôture/annulation du mois s'affiche
- *   ici, contextuel au mois affiché.
- * - "Années" : va directement à la table des ventes de l'année sélectionnée.
- * - "Général" : table plate, sans filtre jour/mois/année (comportement
- *   d'origine, inchangé).
- *
- * Dans les 3 premières vues, `nav.filtresPeriode` (jour/mois/année dérivés de
- * la vue active) est fusionné avec les filtres classiques pour interroger la
- * table - exactement la même valeur que celle utilisée par VenteFilters pour
- * l'export, donc export et affichage restent toujours cohérents.
- */
 export function VentesBrowser({ filters, nav }: VentesBrowserProps) {
   const { viewMode, annee, mois, jour, filtresPeriode, setViewMode, setAnnee, setMois, decalerMois, selectJour, retourJours } =
     nav

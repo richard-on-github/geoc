@@ -10,11 +10,6 @@ interface VenteClotureActionProps {
   mois: number
 }
 
-/**
- * Affiche "Clôturer {mois}" si la période (annee-mois) n'a pas encore de
- * clôture, ou "Annuler la clôture de {mois}" si elle en a déjà une. N'est
- * rendu que dans la vue "Mois" (voir VentesBrowser), par construction.
- */
 export function VenteClotureAction({ annee, mois }: VenteClotureActionProps) {
   const periode = `${String(annee)}-${String(mois).padStart(2, '0')}`
 
