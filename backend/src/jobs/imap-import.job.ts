@@ -1,6 +1,7 @@
 import { ImapFlow } from "imapflow";
 import { simpleParser } from "mailparser";
 import { venteService } from "../modules/ventes/vente.service.js";
+import { emailAutoriseService } from "../modules/ventes/email-autorise/email-autorise.service.js";
 import { parseExcelToVenteRows } from "../utils/excel-parser.js";
 import { prisma } from "../config/prisma.js";
 import cron from "node-cron";
@@ -16,6 +17,16 @@ const imapConfig = {
 };
 
 let isJobRunning = false;
+
+function derivePeriodeFromEmailDate(emailDate: Date | undefined): string {
+  const date =
+    emailDate instanceof Date && !isNaN(emailDate.getTime())
+      ? emailDate
+      : new Date();
+  const annee = date.getFullYear();
+  const mois = String(date.getMonth() + 1).padStart(2, "0");
+  return `${annee}-${mois}`;
+}
 
 export async function checkAndImportEmails() {
   if (isJobRunning) {
@@ -71,6 +82,33 @@ export async function checkAndImportEmails() {
           const emailRaw = await client.download(uid, undefined, { uid: true });
           const parsedEmail = await simpleParser(emailRaw.content);
 
+          const senderEmail = parsedEmail.from?.value?.[0]?.address
+            ?.trim()
+            .toLowerCase();
+
+          if (!senderEmail) {
+            console.log(
+              `[IMAP Job] UID=${uid} : impossible de déterminer l'expéditeur, mail ignoré.`,
+            );
+            await client.messageFlagsAdd(uid, ["\\Seen"], { uid: true });
+            continue;
+          }
+
+          const isSenderAutorise =
+            await emailAutoriseService.isAutorise(senderEmail);
+
+          if (!isSenderAutorise) {
+            console.log(
+              `[IMAP Job] UID=${uid} : expéditeur non autorisé (${senderEmail}), mail ignoré.`,
+            );
+            // On marque quand même le mail comme lu pour ne pas le retraiter
+            // à chaque cycle du cron.
+            await client.messageFlagsAdd(uid, ["\\Seen"], { uid: true });
+            continue;
+          }
+
+          const periode = derivePeriodeFromEmailDate(parsedEmail.date);
+
           if (
             !parsedEmail.attachments ||
             parsedEmail.attachments.length === 0
@@ -95,7 +133,7 @@ export async function checkAndImportEmails() {
               }
 
               console.log(
-                `[IMAP Job] Import en cours de ${filename} (Taille: ${attachment.size} octets)...`,
+                `[IMAP Job] Import en cours de ${filename} (Taille: ${attachment.size} octets, période: ${periode})...`,
               );
 
               try {
@@ -108,6 +146,7 @@ export async function checkAndImportEmails() {
                   attachment.content,
                   parsedRows,
                   filename || "import_auto.xlsx",
+                  periode,
                   systemUser.id,
                   "127.0.0.1",
                 );

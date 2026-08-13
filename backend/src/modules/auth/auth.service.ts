@@ -18,8 +18,10 @@ import type {
 import { logAudit } from "../../utils/audit.js";
 import { AuditAction } from "@prisma/client";
 import { userRepository } from "../users/user.repository.js";
+import { env } from "../../config/env.js";
 
-function buildJwtPayload(user: any) {
+// Ajout du sessionId pour lier le JWT d'accès au RefreshToken (Session) en base
+function buildJwtPayload(user: any, sessionId: string) {
   const roleCode = user.role?.code || "USER";
   const rolePermissions =
     user.role?.permissions.map((rp: any) => rp.permission.code) || [];
@@ -35,6 +37,7 @@ function buildJwtPayload(user: any) {
     permissions: allPermissions,
     dataScope: user.role?.dataScope || "AGENCE",
     agenceId: user.agenceId || null,
+    sessionId, // Liaison de la session
   };
 }
 
@@ -63,23 +66,44 @@ export const authService = {
       throw ApiError.unauthorized(MESSAGES.INVALID_CREDENTIALS);
     }
 
-    const payload = buildJwtPayload(user);
-    const accessToken = generateAccessToken(payload);
+    // Gestion du compte unique: Vérification des sessions existantes
+    const activeSessions = await authRepository.findActiveSessions(user.id);
+    const now = new Date();
 
+    for (const session of activeSessions) {
+      const inactiveMinutes =
+        (now.getTime() - session.lastActivityAt.getTime()) / 60000;
+
+      if (inactiveMinutes < env.SESSION_TIMEOUT_MINUTES) {
+        // La session précédente est toujours active
+        throw ApiError.forbidden(
+          "Ce compte est actuellement utilisé ailleurs. Déconnectez-vous d'abord ou attendez l'expiration de la session active.",
+        );
+      } else {
+        // La session est expirée par inactivité, on nettoie
+        await authRepository.revokeRefreshToken(session.id);
+      }
+    }
+
+    // Création de la nouvelle session (RefreshToken) en priorité pour récupérer l'ID
     const refreshTokenJti = crypto.randomUUID();
     const refreshToken = generateRefreshToken({
       sub: user.id,
       jti: refreshTokenJti,
     });
-
     const refreshTokenHash = await authRepository.hashToken(refreshToken);
     const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
-    await authRepository.createRefreshToken(
+    const session = await authRepository.createRefreshToken(
       user.id,
       refreshTokenHash,
       expiresAt,
     );
+
+    // Génération du Access Token lié à la nouvelle session
+    const payload = buildJwtPayload(user, session.id);
+    const accessToken = generateAccessToken(payload);
+
     await userRepository.updateLastLogin(user.id);
 
     await logAudit({
@@ -136,9 +160,13 @@ export const authService = {
     const newTokenHash = await authRepository.hashToken(newRefreshToken);
     const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
-    await authRepository.createRefreshToken(user.id, newTokenHash, expiresAt);
+    const newSession = await authRepository.createRefreshToken(
+      user.id,
+      newTokenHash,
+      expiresAt,
+    );
 
-    const newJwtPayload = buildJwtPayload(user);
+    const newJwtPayload = buildJwtPayload(user, newSession.id);
     const accessToken = generateAccessToken(newJwtPayload);
 
     await logAudit({
@@ -154,6 +182,7 @@ export const authService = {
     return { accessToken, refreshToken: newRefreshToken };
   },
 
+  // Le reste des méthodes (logout, changePassword, resetPassword, getMe) ne change pas et doit utiliser le buildJwtPayload avec le sessionId si besoin.
   async logout(userId: string, refreshToken?: string, ip?: string) {
     const user = await authRepository.findUserById(userId);
     if (!user) {
@@ -232,7 +261,7 @@ export const authService = {
       userId: adminId,
       ip: ip ?? "",
       message: `Mot de passe réinitialisé par l'administrateur ${adminId}`,
-      agenceId: targetUser.agenceId, // on trace l'agence de l'utilisateur cible
+      agenceId: targetUser.agenceId,
     });
   },
 
@@ -245,7 +274,7 @@ export const authService = {
     const { passwordHash, ...userWithoutPassword } = user;
     return {
       ...userWithoutPassword,
-      permissions: buildJwtPayload(user).permissions,
+      permissions: buildJwtPayload(user, "").permissions, // Dummy sessionId car getMe n'a pas besoin de regénérer de token ici
     };
   },
 };

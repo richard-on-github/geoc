@@ -42,6 +42,17 @@ export const authRepository = {
     });
   },
 
+  // Nouvelle méthode pour chercher les sessions potentiellement en cours
+  async findActiveSessions(userId: string) {
+    return prisma.refreshToken.findMany({
+      where: {
+        userId,
+        revoked: false,
+        expiresAt: { gt: new Date() },
+      },
+    });
+  },
+
   async revokeRefreshToken(id: string, replacedBy?: string) {
     return prisma.refreshToken.update({
       where: { id },

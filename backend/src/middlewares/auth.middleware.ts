@@ -3,6 +3,7 @@ import { verifyAccessToken } from "../utils/jwt.js";
 import { prisma } from "../config/prisma.js";
 import { ApiError } from "../utils/ApiError.js";
 import { MESSAGES } from "../constants/messages.js";
+import { env } from "../config/env.js";
 
 export function authenticate() {
   return async (req: Request, _res: Response, next: NextFunction) => {
@@ -19,19 +20,58 @@ export function authenticate() {
 
       const payload = verifyAccessToken(token);
 
-      // 1. Requête 100% alignée sur votre véritable schéma Prisma
+      const sessionId = payload.sessionId as string;
+      if (!sessionId) {
+        throw ApiError.unauthorized(MESSAGES.INVALID_TOKEN);
+      }
+
+      // Vérification de la session en base de données
+      const session = await prisma.refreshToken.findUnique({
+        where: { id: sessionId },
+      });
+
+      if (!session || session.revoked) {
+        throw ApiError.unauthorized(
+          "Votre session est invalide ou a été révoquée.",
+        );
+      }
+
+      const now = new Date();
+      const inactiveMinutes =
+        (now.getTime() - session.lastActivityAt.getTime()) / 60000;
+
+      if (inactiveMinutes > env.SESSION_TIMEOUT_MINUTES) {
+        // Révocation de la session expirée
+        await prisma.refreshToken.update({
+          where: { id: session.id },
+          data: { revoked: true, revokedAt: now },
+        });
+        throw ApiError.unauthorized(
+          "Session expirée suite à une période d'inactivité. Veuillez vous reconnecter.",
+        );
+      }
+
+      // Optimisation: on ne met à jour l'activité que si plus d'une minute s'est écoulée
+      // pour éviter de saturer la DB à chaque appel API
+      if (inactiveMinutes > 1) {
+        await prisma.refreshToken.update({
+          where: { id: session.id },
+          data: { lastActivityAt: now },
+        });
+      }
+
       const user = await prisma.user.findUnique({
-        where: { id: payload.sub },
+        where: { id: payload.sub as string },
         select: {
           id: true,
           actif: true,
-          agenceId: true, // INDISPENSABLE pour requireDataScope
+          agenceId: true,
           role: {
             select: {
               id: true,
-              nom: true, // Ex: "ADMIN", "CHEF_AGENCE", etc.
+              nom: true,
               niveau: true,
-              dataScope: true, // Le vrai nom de la colonne dans votre BD !
+              dataScope: true,
               isSystem: true,
             },
           },
@@ -44,11 +84,10 @@ export function authenticate() {
         );
       }
 
-      // 2. Hydratation propre et légère de req.user
       req.user = {
         id: user.id,
         agenceId: user.agenceId,
-        role: user.role, // Contient { id, nom, dataScope, isSystem }
+        role: user.role,
       };
 
       next();

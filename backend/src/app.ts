@@ -11,6 +11,7 @@ import { venteRouter } from "./modules/ventes/vente.router.js";
 import { errorMiddleware } from "./middlewares/error.middleware.js";
 import { notFoundMiddleware } from "./middlewares/not-found.middleware.js";
 import { ROUTES } from "./constants/routes.js";
+import { emailAutoriseRouter } from "./modules/ventes/email-autorise/email-autorise.router.js";
 
 const app = express();
 
@@ -25,6 +26,7 @@ app.use(ROUTES.AUDIT.BASE, auditRouter);
 app.use(ROUTES.AGENCE.BASE, agenceRouter);
 app.use(ROUTES.DASHBOARD.BASE, dashboardRouter);
 app.use(ROUTES.VENTE.BASE, venteRouter);
+app.use("/api/emails-autorises", emailAutoriseRouter);
 
 app.use(notFoundMiddleware);
 

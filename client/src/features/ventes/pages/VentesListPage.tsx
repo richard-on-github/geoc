@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react'
 import { PageHeader } from '@/shared/components/layout/PageHeader'
 import { VentesBrowser } from '../components/VentesBrowser'
 import { VenteFilters } from '../components/VenteFilters'
+import { EmailsAutorisesButton } from '../components/EmailsAutorisesButton'
 import { useVenteBrowserState } from '../hooks'
 import type { VenteFiltersState } from '../types'
 
@@ -15,16 +16,14 @@ export function VentesListPage() {
     setFilters(newFilters)
   }, [])
 
-  // Une seule instance de l'état de navigation Jours/Mois/Années/Général,
-  // partagée entre VenteFilters (qui en a besoin pour l'export et pour savoir
-  // quels contrôles afficher) et VentesBrowser (qui l'utilise pour rendre la
-  // bonne vue) — évite toute divergence entre ce qui est affiché et ce qui
-  // est exporté.
   const nav = useVenteBrowserState()
 
   return (
     <div>
-      <PageHeader title="Ventes" description="Historique des ventes importées" />
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <PageHeader title="Ventes" description="Historique des ventes importées" />
+        <EmailsAutorisesButton />
+      </div>
       <VenteFilters
         onFilterChange={handleFilterChange}
         viewMode={nav.viewMode}

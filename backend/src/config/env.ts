@@ -16,6 +16,12 @@ const envSchema = z.object({
   JWT_ACCESS_EXPIRES_IN: z.string().default("30m"),
   JWT_REFRESH_EXPIRES_IN: z.string().default("30d"),
 
+  SESSION_TIMEOUT_MINUTES: z
+    .string()
+    .regex(/^\d+$/)
+    .transform(Number)
+    .default(15),
+
   IMAP_USER: z.string().email("Adresse email IMAP invalide"),
   IMAP_PASSWORD: z.string().min(1, "Mot de passe IMAP requis"),
   IMAP_HOST: z.string().min(1, "Hôte IMAP requis"),

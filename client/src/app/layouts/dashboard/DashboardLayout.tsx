@@ -1,8 +1,10 @@
 import { Outlet } from 'react-router'
 import { Sidebar } from './components/sidebar/Sidebar'
 import { Topbar } from './components/topbar/Topbar'
+import { useActivityTimeout } from '@/features/auth/hooks/useActivityTimeout'
 
 export function DashboardLayout() {
+  useActivityTimeout()
   return (
     <div className="flex h-screen overflow-hidden bg-[hsl(var(--background))]">
       {/* Sidebar navigation */}

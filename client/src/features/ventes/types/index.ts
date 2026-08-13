@@ -64,11 +64,6 @@ export interface VenteQueryParams {
 
 export type ImportVentePayload = FormData
 
-/**
- * Filtres "classiques" du module Ventes (recherche, agence, dates, clôture...),
- * indépendants de la navigation par jour/mois/année. Centralisé ici pour éviter
- * de dupliquer la même forme dans VenteFilters/VentesListPage/VentesTable.
- */
 export interface VenteFiltersState {
   search: string
   agenceId?: string
@@ -84,4 +79,16 @@ export type VenteViewMode = 'jours' | 'mois' | 'annees' | 'general'
 export interface AnnulerClotureResult {
   periode: string
   annule: boolean
+}
+
+export interface EmailAutorise {
+  id: string
+  email: string
+  ajouteParId: string
+  ajoutePar?: {
+    nom: string
+    prenom: string
+    email: string
+  }
+  createdAt: string
 }
