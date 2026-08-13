@@ -15,6 +15,8 @@ import { emailAutoriseRouter } from "./modules/ventes/email-autorise/email-autor
 
 const app = express();
 
+app.set("trust proxy", "loopback");
+
 app.use(cors());
 app.use(express.json());
 
