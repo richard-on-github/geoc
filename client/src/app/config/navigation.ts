@@ -6,6 +6,7 @@ import {
   Key,
   Building2,
   ShoppingCart,
+  Percent,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -53,6 +54,13 @@ export const navigationConfig: NavItem[] = [
     href: '/ventes',
     icon: ShoppingCart,
     permission: 'vente.read',
+  },
+  {
+    id: 'abattements',
+    label: 'Abattements',
+    href: '/abattements',
+    icon: Percent,
+    permission: 'abattement.read',
   },
   {
     id: 'security',

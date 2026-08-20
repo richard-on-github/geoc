@@ -68,9 +68,18 @@ export const venteService = {
     );
 
     if (ventesExistantesPourPeriode === 0) {
-      const existeAuMoinsUneVente = (await prisma.vente.count()) > 0;
-      if (existeAuMoinsUneVente) {
-        const periodePrecedente = getPeriodePrecedente(periode);
+      const periodePrecedente = getPeriodePrecedente(periode);
+      const { mois: moisPrecedent, annee: anneePrecedent } =
+        periodeToMoisAnnee(periodePrecedente);
+
+      // On ne bloque que si la période précédente a elle-même eu des ventes
+      // (sinon rien à clôturer, cf. cloturerMois qui refuse une clôture vide).
+      const ventesPeriodePrecedente = await venteRepository.countByMoisAnnee(
+        moisPrecedent,
+        anneePrecedent,
+      );
+
+      if (ventesPeriodePrecedente > 0) {
         const clotureprecedente = await prisma.venteCloture.findUnique({
           where: { periode: periodePrecedente },
         });

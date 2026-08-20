@@ -2,6 +2,10 @@ import { ImapFlow } from "imapflow";
 import { simpleParser } from "mailparser";
 import { venteService } from "../modules/ventes/vente.service.js";
 import { emailAutoriseService } from "../modules/ventes/email-autorise/email-autorise.service.js";
+import {
+  sendVenteImportNotification,
+  type ImportResultDetail,
+} from "../modules/ventes/vente-import-notification.js";
 import { parseExcelToVenteRows } from "../utils/excel-parser.js";
 import { prisma } from "../config/prisma.js";
 import cron from "node-cron";
@@ -18,6 +22,13 @@ const imapConfig = {
 
 let isJobRunning = false;
 
+/**
+ * Dérive la période cible (format "YYYY-MM") à partir de la date d'envoi du
+ * mail. Les imports IMAP n'ont pas de champ "période" explicite comme les
+ * imports manuels : on considère donc que le fichier concerne le mois durant
+ * lequel il a été envoyé. À défaut de date exploitable sur le mail, on
+ * retombe sur le mois courant (heure du serveur).
+ */
 function derivePeriodeFromEmailDate(emailDate: Date | undefined): string {
   const date =
     emailDate instanceof Date && !isNaN(emailDate.getTime())
@@ -58,8 +69,6 @@ export async function checkAndImportEmails() {
       }
 
       const uids = searchResult;
-
-      console.log(`[IMAP Job] ${uids.length} mail(s) non lu(s) trouvé(s).`);
 
       console.log(`[IMAP Job] ${uids.length} mail(s) non lu(s) trouvé(s).`);
 
@@ -108,6 +117,8 @@ export async function checkAndImportEmails() {
           }
 
           const periode = derivePeriodeFromEmailDate(parsedEmail.date);
+          const succeeded: ImportResultDetail[] = [];
+          const failed: ImportResultDetail[] = [];
 
           if (
             !parsedEmail.attachments ||
@@ -142,7 +153,7 @@ export async function checkAndImportEmails() {
                   attachment.content,
                 );
 
-                await venteService.importVentes(
+                const result = await venteService.importVentes(
                   attachment.content,
                   parsedRows,
                   filename || "import_auto.xlsx",
@@ -151,8 +162,10 @@ export async function checkAndImportEmails() {
                   "127.0.0.1",
                 );
 
+                succeeded.push({ filename, count: result.count });
                 console.log(`[IMAP Job] ✅ Import réussi pour : ${filename}`);
               } catch (error: any) {
+                failed.push({ filename, error: error.message });
                 console.error(
                   `[IMAP Job] ❌ Erreur import sur ${filename}:`,
                   error.message,
@@ -160,6 +173,17 @@ export async function checkAndImportEmails() {
               }
             }
           }
+
+          await sendVenteImportNotification({
+            source: "Import automatique (IMAP)",
+            actor: senderEmail,
+            periode,
+            succeeded,
+            failed,
+            originalSubject: parsedEmail.subject,
+            inReplyTo: parsedEmail.messageId,
+            references: parsedEmail.messageId,
+          });
 
           await client.messageFlagsAdd(uid, ["\\Seen"], { uid: true });
           console.log(

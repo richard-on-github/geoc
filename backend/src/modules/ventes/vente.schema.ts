@@ -9,9 +9,6 @@ export const venteQuerySchema = z.object({
   dateFin: z.string().datetime().optional(),
   clotureId: z.string().cuid().optional(),
   nonClotureesOnly: z.coerce.boolean().optional().default(false),
-  // Filtres indépendants de la période (dateDebut/dateFin) : permettent de retrouver
-  // les ventes d'une journée, d'un mois ou d'une année donnée quelle que soit l'année
-  // (ex: jour=45 retrouve toutes les ventes du 45e jour de l'année, tous exercices confondus).
   jour: z.coerce.number().int().min(1).max(366).optional(),
   mois: z.coerce.number().int().min(1).max(12).optional(),
   annee: z.coerce.number().int().min(2000).max(2100).optional(),

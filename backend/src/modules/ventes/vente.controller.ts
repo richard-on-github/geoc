@@ -5,6 +5,8 @@ import { HTTP_STATUS } from "../../constants/http-status.js";
 import type { ImportVenteBody, VenteQueryParams } from "./vente.interface.js";
 import { parseExcelToVenteRows } from "../../utils/excel-parser.js";
 import { ApiError } from "../../utils/ApiError.js";
+import { prisma } from "../../config/prisma.js";
+import { sendVenteImportNotification } from "./vente-import-notification.js";
 
 export const venteController = {
   async findAll(req: Request, res: Response, next: NextFunction) {
@@ -31,6 +33,19 @@ export const venteController = {
       req.user!.id,
       req.ip,
     );
+
+    const actorUser = await prisma.user.findUnique({
+      where: { id: req.user!.id },
+      select: { email: true },
+    });
+
+    await sendVenteImportNotification({
+      source: "Import manuel",
+      actor: actorUser?.email ?? req.user!.id,
+      periode,
+      succeeded: [{ filename: req.file.originalname, count: result.count }],
+      failed: [],
+    });
 
     successResponse(
       res,

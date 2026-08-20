@@ -136,6 +136,43 @@ export const permissionsData: readonly PermissionItem[] = [
     description:
       "Permet de gérer la liste des adresses email autorisées à envoyer des fichiers de ventes.",
   },
+
+  {
+    code: "abattement.read",
+    nom: "Consulter les abattements",
+    description:
+      "Permet de consulter le tableau récapitulatif des abattements et d'exporter des rapports.",
+  },
+  {
+    code: "abattement.versement.manage",
+    nom: "Enregistrer les versements",
+    description:
+      "Permet de saisir le montant et la date/heure des versements des opérateurs.",
+  },
+  {
+    code: "abattement.parametres.manage",
+    nom: "Configurer les abattements",
+    description:
+      "Permet de modifier l'heure limite de versement et les taux d'abattement appliqués.",
+  },
+  {
+    code: "abattement.export.csv",
+    nom: "Exporter les abattements (CSV)",
+    description:
+      "Permet de générer des rapports d'export des abattements au format CSV.",
+  },
+  {
+    code: "abattement.export.excel",
+    nom: "Exporter les abattements (Excel)",
+    description:
+      "Permet de générer des rapports d'export des abattements au format Excel.",
+  },
+  {
+    code: "abattement.export.pdf",
+    nom: "Exporter les abattements (PDF)",
+    description:
+      "Permet de générer des rapports d'export des abattements au format PDF.",
+  },
 ] as const;
 
 export async function seedPermissions(): Promise<void> {

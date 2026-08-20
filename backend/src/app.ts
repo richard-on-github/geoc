@@ -12,6 +12,7 @@ import { errorMiddleware } from "./middlewares/error.middleware.js";
 import { notFoundMiddleware } from "./middlewares/not-found.middleware.js";
 import { ROUTES } from "./constants/routes.js";
 import { emailAutoriseRouter } from "./modules/ventes/email-autorise/email-autorise.router.js";
+import { abattementRouter } from "./modules/abattements/abattement.router.js";
 
 const app = express();
 
@@ -29,6 +30,7 @@ app.use(ROUTES.AGENCE.BASE, agenceRouter);
 app.use(ROUTES.DASHBOARD.BASE, dashboardRouter);
 app.use(ROUTES.VENTE.BASE, venteRouter);
 app.use("/api/emails-autorises", emailAutoriseRouter);
+app.use("/api/abattements", abattementRouter);
 
 app.use(notFoundMiddleware);
 

@@ -46,6 +46,13 @@ const VentesListPage = lazy(() =>
   import('@/features/ventes/pages/VentesListPage').then((m) => ({ default: m.VentesListPage })),
 )
 
+/* ---- Pages Abattements ---- */
+const AbattementsListPage = lazy(() =>
+  import('@/features/abattements/pages/AbattementsListPage').then((m) => ({
+    default: m.AbattementsListPage,
+  })),
+)
+
 /* ---- Pages Security ---- */
 const RolesListPage = lazy(() =>
   import('@/features/security/pages/RolesListPage').then((m) => ({ default: m.RolesListPage })),
@@ -105,6 +112,9 @@ export const router = createBrowserRouter([
 
       // ===  : Ventes ===
       { path: '/ventes', element: S(VentesListPage) },
+
+      // === Abattements ===
+      { path: '/abattements', element: S(AbattementsListPage) },
 
       // Sécurité
       { path: '/security/roles', element: S(RolesListPage) },
