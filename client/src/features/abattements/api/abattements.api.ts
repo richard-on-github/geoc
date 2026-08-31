@@ -4,7 +4,6 @@ import type {
   AbattementParametres,
   AbattementParametresInput,
   AbattementQueryParams,
-  VersementInput,
 } from '../types'
 
 const BASE_URL = '/abattements'
@@ -46,10 +45,6 @@ export const abattementsApi = {
       input,
     )
     return response.data.data
-  },
-
-  async enregistrerVersement(input: VersementInput): Promise<void> {
-    await axiosInstance.post(`${BASE_URL}/versements`, input)
   },
 
   async exportAbattements(

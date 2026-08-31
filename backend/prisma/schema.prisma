@@ -36,6 +36,12 @@ enum TypeImport {
   API
 }
 
+enum StatutEncaissement {
+  NON_ENCAISSE
+  PARTIEL
+  COMPLET
+}
+
 model User {
   id String @id @default(cuid())
 
@@ -68,8 +74,9 @@ model User {
 
   emailsAutorisesAjoutes EmailAutorise[]
 
-  abattementVersements       AbattementVersement[]
-  abattementParametresModifs AbattementParametres[]
+  encaissements Encaissement[]
+
+  abattementParametres AbattementParametres[]
 
   audits AuditLog[]
 
@@ -252,7 +259,8 @@ model Vente {
   mois      Int
   annee     Int
 
-  abattementVersement AbattementVersement?
+  statutEncaissement StatutEncaissement @default(NON_ENCAISSE)
+  encaissements      Encaissement[]
 
   importId  String?
   importLog VenteImportLog? @relation(fields: [importId], references: [id], onDelete: SetNull)
@@ -316,27 +324,15 @@ model AbattementParametres {
   updatedPar   User?    @relation(fields: [updatedParId], references: [id])
 }
 
-model AbattementVersement {
-  id String @id @default(cuid())
+model Encaissement {
+  id               String   @id @default(cuid())
+  venteId          String
+  vente            Vente    @relation(fields: [venteId], references: [id], onDelete: Cascade)
+  montant          Decimal
+  dateEncaissement DateTime
+  enregistreParId  String
+  enregistrePar    User     @relation(fields: [enregistreParId], references: [id])
+  createdAt        DateTime @default(now())
 
-  venteId String @unique
-  vente   Vente  @relation(fields: [venteId], references: [id], onDelete: Cascade)
-
-  montantVerse Decimal
-
-  dateVersement  DateTime
-  renseigneParId String
-  renseignePar   User     @relation(fields: [renseigneParId], references: [id])
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  @@index([venteId])
 }
-
-// ============================================================
-// À AJOUTER dans le modèle Vente existant :
-// ============================================================
-//   abattementVersement AbattementVersement?
-//
-// À AJOUTER dans le modèle User existant (relations inverses) :
-// ============================================================
-//   abattementVersements       AbattementVersement[]
-//   abattementParametresModifs AbattementParametres[]

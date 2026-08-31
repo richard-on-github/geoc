@@ -1,6 +1,15 @@
 import { axiosInstance } from '@/shared/api'
 import type { ApiPaginatedResponse } from '@/shared/types'
-import type { AnnulerClotureResult, Vente, VenteQueryParams, VenteCloture } from '../types'
+import type {
+  AnnulerClotureResult,
+  Vente,
+  VenteQueryParams,
+  VenteCloture,
+  StatutEncaissement,
+  EncaissementInput,
+  EncaissementResult,
+  HistoriqueEncaissement,
+} from '../types'
 
 const BASE_URL = '/ventes'
 
@@ -22,6 +31,7 @@ type VenteApiRaw = {
   jourAnnee?: unknown
   mois?: unknown
   annee?: unknown
+  statutEncaissement?: unknown
   createdAt?: unknown
   updatedAt?: unknown
   agence?: unknown
@@ -33,6 +43,14 @@ function asString(value: unknown): string {
 
 function asNumber(value: unknown): number {
   return typeof value === 'number' ? value : Number(value)
+}
+
+const STATUTS_ENCAISSEMENT: readonly StatutEncaissement[] = ['NON_ENCAISSE', 'PARTIEL', 'COMPLET']
+
+function asStatutEncaissement(value: unknown): StatutEncaissement {
+  return typeof value === 'string' && (STATUTS_ENCAISSEMENT as readonly string[]).includes(value)
+    ? (value as StatutEncaissement)
+    : 'NON_ENCAISSE'
 }
 
 function mapVente(raw: VenteApiRaw): Vente {
@@ -53,6 +71,7 @@ function mapVente(raw: VenteApiRaw): Vente {
     jourAnnee: asNumber(raw.jourAnnee),
     mois: asNumber(raw.mois),
     annee: asNumber(raw.annee),
+    statutEncaissement: asStatutEncaissement(raw.statutEncaissement),
     createdAt: asString(raw.createdAt),
     updatedAt: asString(raw.updatedAt),
   }
@@ -172,5 +191,20 @@ export const ventesApi = {
     URL.revokeObjectURL(link.href)
 
     return exportPassword
+  },
+
+  async enregistrerEncaissement(input: EncaissementInput): Promise<EncaissementResult> {
+    const response = await axiosInstance.post<{ success: boolean; data: EncaissementResult }>(
+      `${BASE_URL}/encaissements`,
+      input,
+    )
+    return response.data.data
+  },
+
+  async getHistoriqueEncaissements(venteId: string): Promise<HistoriqueEncaissement> {
+    const response = await axiosInstance.get<{ success: boolean; data: HistoriqueEncaissement }>(
+      `${BASE_URL}/${venteId}/encaissements`,
+    )
+    return response.data.data
   },
 }

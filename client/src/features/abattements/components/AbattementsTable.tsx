@@ -6,14 +6,14 @@ import {
   type PaginationState,
 } from '@tanstack/react-table'
 import { useState, useMemo, useEffect } from 'react'
-import { ChevronLeft, ChevronRight, ReceiptText, Wallet } from 'lucide-react'
+import { ChevronLeft, ChevronRight, ReceiptText } from 'lucide-react'
 import { useAbattements } from '../hooks/useAbattements'
 import { EmptyState } from '@/shared/components/feedback/EmptyState'
-import { Can } from '@/shared/components/navigation/Can'
+import { cn } from '@/shared/lib'
 import { formatCurrency } from '@/shared/utils'
 import { AbattementStatutBadge } from './AbattementStatutBadge'
-import { VersementModal } from './VersementModal'
-import type { AbattementFiltersState, AbattementLigne, VenteAvecAbattement } from '../types'
+import { STATUT_REGULARISATION_LABELS } from '../types'
+import type { AbattementFiltersState, AbattementLigne } from '../types'
 
 interface AbattementsTableProps {
   filters: AbattementFiltersState & {
@@ -27,7 +27,6 @@ const PAGE_SIZES = [10, 20, 50]
 
 export function AbattementsTable({ filters }: AbattementsTableProps) {
   const [pagination, setPagination] = useState<PaginationState>({ pageIndex: 0, pageSize: 20 })
-  const [venteSelectionnee, setVenteSelectionnee] = useState<VenteAvecAbattement | null>(null)
 
   useEffect(() => {
     setPagination((p) => ({ ...p, pageIndex: 0 }))
@@ -87,14 +86,14 @@ export function AbattementsTable({ filters }: AbattementsTableProps) {
         ),
       },
       {
-        id: 'paiement',
-        header: 'Paiement',
-        cell: ({ row }) => formatCurrency(row.original.vente.totalPaye),
-      },
-      {
         id: 'solde',
         header: 'Solde à verser',
         cell: ({ row }) => formatCurrency(row.original.vente.totalSolde),
+      },
+      {
+        id: 'encaisse',
+        header: 'Encaissé',
+        cell: ({ row }) => formatCurrency(row.original.abattement.montantEncaisseCumule),
       },
       {
         id: 'statut',
@@ -102,8 +101,28 @@ export function AbattementsTable({ filters }: AbattementsTableProps) {
         cell: ({ row }) => <AbattementStatutBadge statut={row.original.abattement.statut} />,
       },
       {
-        id: 'abattement',
-        header: 'Abattement',
+        id: 'regularisation',
+        header: 'Régularisation',
+        cell: ({ row }) => {
+          const { regularisation, montantRegularisation } = row.original.abattement
+          if (regularisation === 'NON_APPLICABLE') {
+            return <span className="text-[hsl(var(--muted-foreground))]">-</span>
+          }
+          return (
+            <span
+              className={cn(
+                'text-xs font-medium',
+                regularisation === 'REG' ? 'text-green-600' : 'text-[hsl(var(--destructive))]',
+              )}
+            >
+              {STATUT_REGULARISATION_LABELS[regularisation]} ({formatCurrency(montantRegularisation)})
+            </span>
+          )
+        },
+      },
+      {
+        id: 'prelevement',
+        header: 'Prélèvement',
         cell: ({ row }) => {
           const montant = row.original.abattement.montantAbattement
           return montant > 0 ? (
@@ -114,24 +133,6 @@ export function AbattementsTable({ filters }: AbattementsTableProps) {
             <span className="text-[hsl(var(--muted-foreground))]">-</span>
           )
         },
-      },
-      {
-        id: 'action',
-        header: '',
-        cell: ({ row }) => (
-          <Can permission="abattement.versement.manage">
-            <button
-              type="button"
-              onClick={() => {
-                setVenteSelectionnee(row.original.vente)
-              }}
-              className="flex items-center gap-1 text-xs font-medium text-[hsl(var(--primary))] hover:underline"
-            >
-              <Wallet size={14} />
-              {row.original.vente.abattementVersement ? 'Modifier' : 'Versement'}
-            </button>
-          </Can>
-        ),
       },
     ],
     [],
@@ -153,7 +154,7 @@ export function AbattementsTable({ filters }: AbattementsTableProps) {
         <table className="w-full text-sm">
           <thead className="bg-[hsl(var(--muted))]">
             <tr>
-              {['Date', 'Journée', 'N° OP', 'Agence', 'Ventes', 'Paiement', 'Solde', 'Statut', 'Abattement', ''].map(
+              {['Date', 'Journée', 'N° OP', 'Agence', 'Ventes', 'Solde', 'Encaissé', 'Statut', 'Régularisation', 'Prélèvement'].map(
                 (h) => (
                   <th
                     key={h}
@@ -247,12 +248,12 @@ export function AbattementsTable({ filters }: AbattementsTableProps) {
                     onClick={() => {
                       setPagination({ pageIndex: 0, pageSize: size })
                     }}
-                    className={
-                      'h-7 min-w-7 rounded-sm border border-[hsl(var(--border))] px-1.5 text-xs font-medium transition-colors hover:bg-[hsl(var(--muted))] ' +
-                      (pagination.pageSize === size
+                    className={cn(
+                      'h-7 min-w-7 rounded-sm border border-[hsl(var(--border))] px-1.5 text-xs font-medium transition-colors hover:bg-[hsl(var(--muted))]',
+                      pagination.pageSize === size
                         ? 'border-[hsl(var(--primary))] bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))]'
-                        : 'bg-[hsl(var(--card))] text-[hsl(var(--foreground))]')
-                    }
+                        : 'bg-[hsl(var(--card))] text-[hsl(var(--foreground))]',
+                    )}
                   >
                     {size}
                   </button>
@@ -287,15 +288,6 @@ export function AbattementsTable({ filters }: AbattementsTableProps) {
             </div>
           </div>
         </div>
-      )}
-
-      {venteSelectionnee && (
-        <VersementModal
-          vente={venteSelectionnee}
-          onClose={() => {
-            setVenteSelectionnee(null)
-          }}
-        />
       )}
     </div>
   )

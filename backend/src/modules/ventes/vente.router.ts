@@ -2,6 +2,7 @@ import { Router } from "express";
 import multer from "multer";
 import { venteController } from "./vente.controller.js";
 import { venteExportController } from "./vente-export.controller.js";
+import { venteEncaissementController } from "./vente-encaissement.controller.js";
 import { authenticate } from "../../middlewares/auth.middleware.js";
 import { requirePermissions } from "../../middlewares/permission.middleware.js";
 import { initRequestContext } from "../../middlewares/context.middleware.js";
@@ -13,6 +14,10 @@ import {
   periodeParamsSchema,
   venteQuerySchema,
 } from "./vente.schema.js";
+import {
+  encaissementInputSchema,
+  venteIdParamsSchema,
+} from "./vente-encaissement.schema.js";
 import { ROUTES } from "../../constants/routes.js";
 
 const router = Router();
@@ -54,6 +59,20 @@ router.get(
   ROUTES.VENTE.CLOTURES,
   requirePermissions("vente.read"),
   asyncHandler(venteController.getClotures),
+);
+
+router.post(
+  "/encaissements",
+  requirePermissions("vente.encaissement.manage"),
+  validate({ body: encaissementInputSchema }),
+  asyncHandler(venteEncaissementController.create),
+);
+
+router.get(
+  "/:id/encaissements",
+  requirePermissions("vente.read"),
+  validate({ params: venteIdParamsSchema }),
+  asyncHandler(venteEncaissementController.getHistorique),
 );
 
 router.get(

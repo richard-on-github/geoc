@@ -16,11 +16,15 @@ import {
   Receipt,
   Lock,
   Unlock,
+  Wallet,
 } from 'lucide-react'
 import { useVentes } from '../hooks'
 import { EmptyState } from '@/shared/components/feedback/EmptyState'
+import { Can } from '@/shared/components/navigation/Can'
 import { cn } from '@/shared/lib'
 import { formatCurrency } from '@/shared/utils'
+import { EncaissementModal } from './EncaissementModal'
+import { STATUT_ENCAISSEMENT_LABELS } from '../types'
 import type { Vente, VenteFiltersState } from '../types'
 
 interface VentesTableProps {
@@ -34,9 +38,16 @@ interface VentesTableProps {
 
 const PAGE_SIZES = [10, 20, 50]
 
+const STATUT_ENCAISSEMENT_STYLES: Record<Vente['statutEncaissement'], string> = {
+  NON_ENCAISSE: 'bg-red-100 text-red-700',
+  PARTIEL: 'bg-amber-100 text-amber-700',
+  COMPLET: 'bg-green-100 text-green-700',
+}
+
 export function VentesTable({ filters }: VentesTableProps) {
   const [sorting, setSorting] = useState<SortingState>([])
   const [pagination, setPagination] = useState<PaginationState>({ pageIndex: 0, pageSize: 20 })
+  const [venteSelectionnee, setVenteSelectionnee] = useState<Vente | null>(null)
 
   useEffect(() => {
     setPagination((p) => ({ ...p, pageIndex: 0 }))
@@ -160,6 +171,24 @@ export function VentesTable({ filters }: VentesTableProps) {
         ),
       },
       {
+        id: 'statutEncaissement',
+        header: 'Encaissement',
+        enableSorting: false,
+        cell: ({ row }) => {
+          const statut = row.original.statutEncaissement
+          return (
+            <span
+              className={cn(
+                'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium',
+                STATUT_ENCAISSEMENT_STYLES[statut],
+              )}
+            >
+              {STATUT_ENCAISSEMENT_LABELS[statut]}
+            </span>
+          )
+        },
+      },
+      {
         id: 'jourAnnee',
         header: 'Jour',
         accessorKey: 'jourAnnee',
@@ -175,6 +204,25 @@ export function VentesTable({ filters }: VentesTableProps) {
             {new Date(row.original.dateDebut).toLocaleDateString()} -{' '}
             {new Date(row.original.dateFin).toLocaleDateString()}
           </span>
+        ),
+      },
+      {
+        id: 'action',
+        header: '',
+        enableSorting: false,
+        cell: ({ row }) => (
+          <Can permission="vente.encaissement.manage">
+            <button
+              type="button"
+              onClick={() => {
+                setVenteSelectionnee(row.original)
+              }}
+              className="flex items-center gap-1 text-xs font-medium text-[hsl(var(--primary))] hover:underline"
+            >
+              <Wallet size={14} />
+              Encaisser
+            </button>
+          </Can>
         ),
       },
     ],
@@ -209,9 +257,10 @@ export function VentesTable({ filters }: VentesTableProps) {
                 'Total Vente',
                 'Payé',
                 'Solde',
+                'Encaissement',
                 'Jour',
                 'Période',
-                'Importé le',
+                '',
               ].map((h) => (
                 <th
                   key={h}
@@ -225,7 +274,7 @@ export function VentesTable({ filters }: VentesTableProps) {
           <tbody className="divide-y divide-[hsl(var(--border))] bg-[hsl(var(--card))]">
             {Array.from({ length: 8 }).map((_, i) => (
               <tr key={i}>
-                {Array.from({ length: 11 }).map((_, j) => (
+                {Array.from({ length: 12 }).map((_, j) => (
                   <td key={j} className="px-4 py-3">
                     <div className="h-3.5 w-20 animate-pulse rounded bg-[hsl(var(--muted))]" />
                   </td>
@@ -365,6 +414,15 @@ export function VentesTable({ filters }: VentesTableProps) {
             </div>
           </div>
         </div>
+      )}
+
+      {venteSelectionnee && (
+        <EncaissementModal
+          vente={venteSelectionnee}
+          onClose={() => {
+            setVenteSelectionnee(null)
+          }}
+        />
       )}
     </div>
   )

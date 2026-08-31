@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import { abattementsApi } from '../api/abattements.api'
-import type { AbattementParametresInput, AbattementQueryParams, VersementInput } from '../types'
+import type { AbattementParametresInput, AbattementQueryParams } from '../types'
 import { ApiError } from '@/shared/types'
 
 export const ABATTEMENT_QUERY_KEYS = {
@@ -38,22 +38,6 @@ export function useUpdateAbattementParametres() {
     onError: (error) => {
       toast.error(
         error instanceof ApiError ? error.message : 'Erreur lors de la mise à jour des paramètres.',
-      )
-    },
-  })
-}
-
-export function useEnregistrerVersement() {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: (input: VersementInput) => abattementsApi.enregistrerVersement(input),
-    onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ABATTEMENT_QUERY_KEYS.lists() })
-      toast.success('Versement enregistré avec succès.')
-    },
-    onError: (error) => {
-      toast.error(
-        error instanceof ApiError ? error.message : "Erreur lors de l'enregistrement du versement.",
       )
     },
   })

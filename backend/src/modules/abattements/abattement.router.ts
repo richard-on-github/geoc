@@ -8,7 +8,6 @@ import { validate } from "../../middlewares/validate.middleware.js";
 import { asyncHandler } from "../../utils/asyncHandler.js";
 import {
   abattementQuerySchema,
-  versementInputSchema,
   abattementParametresUpdateSchema,
 } from "./abattement.schema.js";
 
@@ -35,13 +34,6 @@ router.put(
   requirePermissions("abattement.parametres.manage"),
   validate({ body: abattementParametresUpdateSchema }),
   asyncHandler(abattementController.updateParametres),
-);
-
-router.post(
-  "/versements",
-  requirePermissions("abattement.versement.manage"),
-  validate({ body: versementInputSchema }),
-  asyncHandler(abattementController.enregistrerVersement),
 );
 
 router.get(

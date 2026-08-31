@@ -4,7 +4,7 @@ import { prisma } from "../../config/prisma.js";
 import crypto from "crypto";
 import type { AbattementQueryParams } from "./abattement.interface.js";
 import { abattementRepository } from "./abattement.repository.js";
-import type { VenteAvecVersement } from "./abattement.repository.js";
+import type { VenteAvecEncaissements } from "./abattement.repository.js";
 import {
   computeAbattement,
   type AbattementCalcule,
@@ -49,6 +49,12 @@ interface LigneAbattementExport {
   moinsVerseRetardAbattement: number;
   nonVerseMontant: number;
   nonVerseAbattement: number;
+  /** Montant régularisé (moins versé/non versé finalement comblé, sans limite de délai). */
+  regMontant: number;
+  /** Montant restant non régularisé à ce jour. */
+  nonRegMontant: number;
+  /** Total du prélèvement = le montant d'abattement retenu, quelle que soit la catégorie. */
+  prelevementTotal: number;
 }
 
 function decrireFiltres(query: AbattementQueryParams): string[] {
@@ -70,7 +76,7 @@ function decrireFiltres(query: AbattementQueryParams): string[] {
 
 /** Transforme le résultat brut du calcul en une ligne "à plat", prête pour CSV/Excel/PDF. */
 function buildLigneExport(
-  vente: VenteAvecVersement,
+  vente: VenteAvecEncaissements,
   abattement: AbattementCalcule,
 ): LigneAbattementExport {
   const ligne: LigneAbattementExport = {
@@ -88,26 +94,38 @@ function buildLigneExport(
     moinsVerseRetardAbattement: 0,
     nonVerseMontant: 0,
     nonVerseAbattement: 0,
+    regMontant: 0,
+    nonRegMontant: 0,
+    prelevementTotal: abattement.montantAbattement,
   };
 
+  // "Montant" par catégorie = ce qui a été effectivement encaissé jusqu'ici
+  // (cumul des encaissements), à titre informatif — l'abattement, lui, est
+  // toujours calculé sur le total des ventes, pas sur ce montant.
   switch (abattement.statut) {
     case "RETARD":
-      ligne.retardHeure = formatHeureCourte(abattement.heureVersement);
+      ligne.retardHeure = formatHeureCourte(abattement.dateCompletion);
       ligne.retardAbattement = abattement.montantAbattement;
       break;
     case "MOINS_VERSE":
-      ligne.moinsVerseMontant = abattement.assiette;
+      ligne.moinsVerseMontant = abattement.montantEncaisseCumule;
       ligne.moinsVerseAbattement = abattement.montantAbattement;
       break;
     case "MOINS_VERSE_AVEC_RETARD":
-      ligne.moinsVerseRetardMontant = abattement.assiette;
+      ligne.moinsVerseRetardMontant = abattement.montantEncaisseCumule;
       ligne.moinsVerseRetardAbattement = abattement.montantAbattement;
       break;
     case "NON_VERSE":
-      ligne.nonVerseMontant = abattement.assiette;
+      ligne.nonVerseMontant = abattement.montantEncaisseCumule;
       ligne.nonVerseAbattement = abattement.montantAbattement;
       break;
     // AUCUN : la ligne reste à ses valeurs par défaut (0 / "-").
+  }
+
+  if (abattement.regularisation === "REG") {
+    ligne.regMontant = abattement.montantRegularisation;
+  } else if (abattement.regularisation === "NON_REG") {
+    ligne.nonRegMontant = abattement.montantRegularisation;
   }
 
   return ligne;
@@ -120,42 +138,28 @@ export const abattementExportService = {
     parametres: AbattementParametresValues;
   }> {
     const parametres = await abattementRepository.getParametres();
-    const ventes: VenteAvecVersement[] =
-      await abattementRepository.findAllVentesAvecVersement(params);
+    const ventes: VenteAvecEncaissements[] =
+      await abattementRepository.findAllVentesAvecEncaissements(params);
 
-    let lignes = ventes.map((vente) => {
-      const abattement = computeAbattement(
+    const calculerAbattement = (vente: VenteAvecEncaissements) =>
+      computeAbattement(
         vente,
-        vente.abattementVersement
-          ? {
-              montantVerse: Number(vente.abattementVersement.montantVerse),
-              dateVersement: vente.abattementVersement.dateVersement,
-            }
-          : null,
+        vente.encaissements.map((e) => ({
+          montant: e.montant,
+          dateEncaissement: e.dateEncaissement,
+        })),
         parametres,
       );
-      return buildLigneExport(vente, abattement);
-    });
+
+    let lignes = ventes.map((vente) =>
+      buildLigneExport(vente, calculerAbattement(vente)),
+    );
 
     // Le filtre "statut" ne peut pas être fait en base (c'est une valeur
     // calculée, pas une colonne) : on l'applique ici, après calcul.
     if (params.statut) {
       const ventesAvecStatut = ventes
-        .map((vente) => ({
-          vente,
-          abattement: computeAbattement(
-            vente,
-            vente.abattementVersement
-              ? {
-                  montantVerse: Number(
-                    vente.abattementVersement.montantVerse,
-                  ),
-                  dateVersement: vente.abattementVersement.dateVersement,
-                }
-              : null,
-            parametres,
-          ),
-        }))
+        .map((vente) => ({ vente, abattement: calculerAbattement(vente) }))
         .filter((x) => x.abattement.statut === params.statut);
       lignes = ventesAvecStatut.map((x) =>
         buildLigneExport(x.vente, x.abattement),
@@ -212,8 +216,22 @@ export const abattementExportService = {
         moinsVerse: acc.moinsVerse + l.moinsVerseAbattement,
         moinsVerseRetard: acc.moinsVerseRetard + l.moinsVerseRetardAbattement,
         nonVerse: acc.nonVerse + l.nonVerseAbattement,
+        reg: acc.reg + l.regMontant,
+        nonReg: acc.nonReg + l.nonRegMontant,
+        prelevement: acc.prelevement + l.prelevementTotal,
       }),
-      { ventes: 0, paiement: 0, solde: 0, retard: 0, moinsVerse: 0, moinsVerseRetard: 0, nonVerse: 0 },
+      {
+        ventes: 0,
+        paiement: 0,
+        solde: 0,
+        retard: 0,
+        moinsVerse: 0,
+        moinsVerseRetard: 0,
+        nonVerse: 0,
+        reg: 0,
+        nonReg: 0,
+        prelevement: 0,
+      },
     );
 
     const headers = [
@@ -231,6 +249,9 @@ export const abattementExportService = {
       `Moins versé avec retard - Abattement (${parametres.tauxMoinsVerseAvecRetard}%)`,
       "Non versé - Montant",
       `Non versé - Abattement (${parametres.tauxNonVerse}%)`,
+      "Statut - REG (régularisé)",
+      "Statut - NON REG (non régularisé)",
+      "Prélèvement total",
     ];
 
     const rows: string[][] = lignes.map((l) => [
@@ -248,6 +269,9 @@ export const abattementExportService = {
       l.moinsVerseRetardAbattement.toString(),
       l.nonVerseMontant.toString(),
       l.nonVerseAbattement.toString(),
+      l.regMontant.toString(),
+      l.nonRegMontant.toString(),
+      l.prelevementTotal.toString(),
     ]);
 
     rows.push([
@@ -265,15 +289,22 @@ export const abattementExportService = {
       totaux.moinsVerseRetard.toString(),
       "",
       totaux.nonVerse.toString(),
+      totaux.reg.toString(),
+      totaux.nonReg.toString(),
+      totaux.prelevement.toString(),
     ]);
 
     const escape = (val: string) => `"${val.replace(/"/g, '""')}"`;
 
     const infoLines: string[] = [
       [`# Export des abattements - Référence ${metadata.reference}`],
-      [`# Généré par : ${metadata.genererParNom} (${metadata.genererParEmail})`],
+      [
+        `# Généré par : ${metadata.genererParNom} (${metadata.genererParEmail})`,
+      ],
       [`# Agence exportateur : ${metadata.agenceExportateur}`],
-      [`# Date de génération : ${formatDateHeureCourte(metadata.dateGeneration)}`],
+      [
+        `# Date de génération : ${formatDateHeureCourte(metadata.dateGeneration)}`,
+      ],
       [`# Filtres appliqués : ${metadata.filtresAppliques.join(" | ")}`],
       [
         `# Paramètres appliqués : heure limite ${parametres.heureLimiteUTC}h UTC | ` +
@@ -281,6 +312,9 @@ export const abattementExportService = {
           `Moins versé + retard ${parametres.tauxMoinsVerseAvecRetard}% | Non versé ${parametres.tauxNonVerse}%`,
       ],
       [`# Nombre de lignes : ${metadata.nombreLignes}`],
+      [
+        `# REG = manquant (moins versé ou non versé) finalement régularisé, sans limite de délai. NON REG = manquant toujours non régularisé à ce jour.`,
+      ],
       [`# ATTENTION : ce fichier ne doit pas être modifié.`],
       [""],
     ].map((line: string[]) => line.map(escape).join(","));
@@ -308,8 +342,22 @@ export const abattementExportService = {
         moinsVerse: acc.moinsVerse + l.moinsVerseAbattement,
         moinsVerseRetard: acc.moinsVerseRetard + l.moinsVerseRetardAbattement,
         nonVerse: acc.nonVerse + l.nonVerseAbattement,
+        reg: acc.reg + l.regMontant,
+        nonReg: acc.nonReg + l.nonRegMontant,
+        prelevement: acc.prelevement + l.prelevementTotal,
       }),
-      { ventes: 0, paiement: 0, solde: 0, retard: 0, moinsVerse: 0, moinsVerseRetard: 0, nonVerse: 0 },
+      {
+        ventes: 0,
+        paiement: 0,
+        solde: 0,
+        retard: 0,
+        moinsVerse: 0,
+        moinsVerseRetard: 0,
+        nonVerse: 0,
+        reg: 0,
+        nonReg: 0,
+        prelevement: 0,
+      },
     );
 
     const data = lignes.map((l) => ({
@@ -330,6 +378,9 @@ export const abattementExportService = {
       "Non versé - Montant": l.nonVerseMontant,
       [`Non versé - Abattement (${parametres.tauxNonVerse}%)`]:
         l.nonVerseAbattement,
+      "Statut - REG": l.regMontant,
+      "Statut - NON REG": l.nonRegMontant,
+      "Prélèvement total": l.prelevementTotal,
     }));
 
     data.push({
@@ -348,8 +399,10 @@ export const abattementExportService = {
       [`Moins versé avec retard - Abattement (${parametres.tauxMoinsVerseAvecRetard}%)`]:
         totaux.moinsVerseRetard,
       "Non versé - Montant": 0,
-      [`Non versé - Abattement (${parametres.tauxNonVerse}%)`]:
-        totaux.nonVerse,
+      [`Non versé - Abattement (${parametres.tauxNonVerse}%)`]: totaux.nonVerse,
+      "Statut - REG": totaux.reg,
+      "Statut - NON REG": totaux.nonReg,
+      "Prélèvement total": totaux.prelevement,
     } as (typeof data)[number]);
 
     const workbook = xlsx.utils.book_new();
@@ -369,6 +422,10 @@ export const abattementExportService = {
           `Non versé ${parametres.tauxNonVerse}%`,
       ],
       ["Nombre de lignes", String(metadata.nombreLignes)],
+      [
+        "REG / NON REG",
+        "REG = manquant finalement régularisé (sans limite de délai). NON REG = manquant toujours non régularisé à ce jour.",
+      ],
       ["", ""],
       [
         "ATTENTION",
@@ -398,35 +455,105 @@ export const abattementExportService = {
         moinsVerse: acc.moinsVerse + l.moinsVerseAbattement,
         moinsVerseRetard: acc.moinsVerseRetard + l.moinsVerseRetardAbattement,
         nonVerse: acc.nonVerse + l.nonVerseAbattement,
+        reg: acc.reg + l.regMontant,
+        nonReg: acc.nonReg + l.nonRegMontant,
+        prelevement: acc.prelevement + l.prelevementTotal,
       }),
-      { ventes: 0, paiement: 0, solde: 0, retard: 0, moinsVerse: 0, moinsVerseRetard: 0, nonVerse: 0 },
+      {
+        ventes: 0,
+        paiement: 0,
+        solde: 0,
+        retard: 0,
+        moinsVerse: 0,
+        moinsVerseRetard: 0,
+        nonVerse: 0,
+        reg: 0,
+        nonReg: 0,
+        prelevement: 0,
+      },
     );
 
     // Couleurs reprises directement du modèle Excel fourni : jaune (Retards),
-    // bleu (Moins versés), vert (Moins versés avec retard), orange (Non versé).
+    // bleu (Moins versés), vert (Moins versés avec retard), orange (Non versé),
+    // gris (Statut MV-NV, "partie grise" du tableau).
     const COULEUR_RETARDS = "#FCE9A4";
     const COULEUR_MOINS_VERSE = "#B7D9EA";
     const COULEUR_MOINS_VERSE_RETARD = "#C6E0B4";
     const COULEUR_NON_VERSE = "#F4C7A1";
+    const COULEUR_STATUT_MVNV = "#D9D9D9";
     const COULEUR_ENTETE_SIMPLE = "#F2F2F2";
 
-    // En-tête à deux lignes : 6 colonnes simples (rowSpan 2, fond gris clair)
-    // + 4 groupes colorés (colSpan 2 sur la ligne 1, sous-en-têtes sur la ligne 2).
+    // En-tête à deux lignes : 6 colonnes simples + 4 groupes colorés (2
+    // sous-colonnes chacun) + 1 groupe gris (REG/NON REG) + 1 colonne simple
+    // (Prélèvement total) = 6 + 8 + 2 + 1 = 17 colonnes.
     const headerRow1: TableCell[] = [
       { text: "DATE", style: "simpleHeader", alignment: "center", rowSpan: 2 },
-      { text: "JOURNEE", style: "simpleHeader", alignment: "center", rowSpan: 2 },
+      {
+        text: "JOURNEE",
+        style: "simpleHeader",
+        alignment: "center",
+        rowSpan: 2,
+      },
       { text: "N° OP", style: "simpleHeader", alignment: "center", rowSpan: 2 },
-      { text: "VENTES", style: "simpleHeader", alignment: "center", rowSpan: 2 },
-      { text: "PAIEMENT", style: "simpleHeader", alignment: "center", rowSpan: 2 },
-      { text: "SOLDE A VERSER", style: "simpleHeader", alignment: "center", rowSpan: 2 },
-      { text: "Retards", style: "groupHeaderRetards", alignment: "center", colSpan: 2 },
+      {
+        text: "VENTES",
+        style: "simpleHeader",
+        alignment: "center",
+        rowSpan: 2,
+      },
+      {
+        text: "PAIEMENT",
+        style: "simpleHeader",
+        alignment: "center",
+        rowSpan: 2,
+      },
+      {
+        text: "SOLDE A VERSER",
+        style: "simpleHeader",
+        alignment: "center",
+        rowSpan: 2,
+      },
+      {
+        text: "Retards",
+        style: "groupHeaderRetards",
+        alignment: "center",
+        colSpan: 2,
+      },
       {},
-      { text: "Moins versés", style: "groupHeaderMoinsVerse", alignment: "center", colSpan: 2 },
+      {
+        text: "Moins versés",
+        style: "groupHeaderMoinsVerse",
+        alignment: "center",
+        colSpan: 2,
+      },
       {},
-      { text: "Moins versés avec retard", style: "groupHeaderMoinsVerseRetard", alignment: "center", colSpan: 2 },
+      {
+        text: "Moins versés avec retard",
+        style: "groupHeaderMoinsVerseRetard",
+        alignment: "center",
+        colSpan: 2,
+      },
       {},
-      { text: "Non versé", style: "groupHeaderNonVerse", alignment: "center", colSpan: 2 },
+      {
+        text: "Non versé",
+        style: "groupHeaderNonVerse",
+        alignment: "center",
+        colSpan: 2,
+      },
       {},
+      {
+        text: "Statut (MV-NV)",
+        style: "groupHeaderStatutMvNv",
+        alignment: "center",
+        colSpan: 2,
+      },
+      {},
+      {
+        text: "PRELEVEMENT",
+        style: "simpleHeader",
+        alignment: "center",
+        rowSpan: 2,
+      },
     ];
 
     const headerRow2: TableCell[] = [
@@ -437,13 +564,36 @@ export const abattementExportService = {
       {},
       {},
       { text: "Heure", style: "groupHeaderRetards", alignment: "center" },
-      { text: `Ab ${parametres.tauxRetard}%`, style: "groupHeaderRetards", alignment: "center" },
+      {
+        text: `Ab ${parametres.tauxRetard}%`,
+        style: "groupHeaderRetards",
+        alignment: "center",
+      },
       { text: "Montant", style: "groupHeaderMoinsVerse", alignment: "center" },
-      { text: `Ab ${parametres.tauxMoinsVerse}%`, style: "groupHeaderMoinsVerse", alignment: "center" },
-      { text: "Montant", style: "groupHeaderMoinsVerseRetard", alignment: "center" },
-      { text: `Ab ${parametres.tauxMoinsVerseAvecRetard}%`, style: "groupHeaderMoinsVerseRetard", alignment: "center" },
+      {
+        text: `Ab ${parametres.tauxMoinsVerse}%`,
+        style: "groupHeaderMoinsVerse",
+        alignment: "center",
+      },
+      {
+        text: "Montant",
+        style: "groupHeaderMoinsVerseRetard",
+        alignment: "center",
+      },
+      {
+        text: `Ab ${parametres.tauxMoinsVerseAvecRetard}%`,
+        style: "groupHeaderMoinsVerseRetard",
+        alignment: "center",
+      },
       { text: "Montant", style: "groupHeaderNonVerse", alignment: "center" },
-      { text: `Ab ${parametres.tauxNonVerse}%`, style: "groupHeaderNonVerse", alignment: "center" },
+      {
+        text: `Ab ${parametres.tauxNonVerse}%`,
+        style: "groupHeaderNonVerse",
+        alignment: "center",
+      },
+      { text: "REG", style: "groupHeaderStatutMvNv", alignment: "center" },
+      { text: "NON REG", style: "groupHeaderStatutMvNv", alignment: "center" },
+      {},
     ];
 
     const tableBody: TableCell[][] = [headerRow1, headerRow2];
@@ -456,20 +606,63 @@ export const abattementExportService = {
         { text: formatCurrency(l.ventes), alignment: "right" },
         { text: formatCurrency(l.paiement), alignment: "right" },
         { text: formatCurrency(l.soldeAVerser), alignment: "right" },
-        { text: l.retardHeure === "-" ? "" : l.retardHeure, alignment: "center" },
-        { text: l.retardAbattement ? formatCurrency(l.retardAbattement) : "0", alignment: "right" },
-        { text: l.moinsVerseMontant ? formatCurrency(l.moinsVerseMontant) : "0", alignment: "right" },
-        { text: l.moinsVerseAbattement ? formatCurrency(l.moinsVerseAbattement) : "0", alignment: "right" },
-        { text: l.moinsVerseRetardMontant ? formatCurrency(l.moinsVerseRetardMontant) : "0", alignment: "right" },
-        { text: l.moinsVerseRetardAbattement ? formatCurrency(l.moinsVerseRetardAbattement) : "0", alignment: "right" },
-        { text: l.nonVerseMontant ? formatCurrency(l.nonVerseMontant) : "0", alignment: "right" },
-        { text: l.nonVerseAbattement ? formatCurrency(l.nonVerseAbattement) : "0", alignment: "right" },
+        {
+          text: l.retardHeure === "-" ? "" : l.retardHeure,
+          alignment: "center",
+        },
+        {
+          text: l.retardAbattement ? formatCurrency(l.retardAbattement) : "0",
+          alignment: "right",
+        },
+        {
+          text: l.moinsVerseMontant ? formatCurrency(l.moinsVerseMontant) : "0",
+          alignment: "right",
+        },
+        {
+          text: l.moinsVerseAbattement
+            ? formatCurrency(l.moinsVerseAbattement)
+            : "0",
+          alignment: "right",
+        },
+        {
+          text: l.moinsVerseRetardMontant
+            ? formatCurrency(l.moinsVerseRetardMontant)
+            : "0",
+          alignment: "right",
+        },
+        {
+          text: l.moinsVerseRetardAbattement
+            ? formatCurrency(l.moinsVerseRetardAbattement)
+            : "0",
+          alignment: "right",
+        },
+        {
+          text: l.nonVerseMontant ? formatCurrency(l.nonVerseMontant) : "0",
+          alignment: "right",
+        },
+        {
+          text: l.nonVerseAbattement
+            ? formatCurrency(l.nonVerseAbattement)
+            : "0",
+          alignment: "right",
+        },
+        {
+          text: l.regMontant ? formatCurrency(l.regMontant) : "",
+          alignment: "right",
+        },
+        {
+          text: l.nonRegMontant ? formatCurrency(l.nonRegMontant) : "",
+          alignment: "right",
+        },
+        {
+          text: l.prelevementTotal ? formatCurrency(l.prelevementTotal) : "0",
+          alignment: "right",
+        },
       ]);
     });
 
-    // Ligne TOTAL : le libellé fusionne les 6 premières colonnes (comme dans
-    // le modèle), puis seules les colonnes "Ab %" affichent une somme — les
-    // colonnes "Heure"/"Montant" restent vides sur cette ligne récapitulative.
+    // Ligne TOTAL : le libellé fusionne les 6 premières colonnes, puis
+    // chaque colonne "somme" affiche son total (Heure/Montant restent vides).
     tableBody.push([
       { text: "TOTAL", colSpan: 6, style: "tableTotal", alignment: "center" },
       {},
@@ -478,13 +671,44 @@ export const abattementExportService = {
       {},
       {},
       { text: "", style: "tableTotal" },
-      { text: formatCurrency(totaux.retard), style: "tableTotal", alignment: "right" },
+      {
+        text: formatCurrency(totaux.retard),
+        style: "tableTotal",
+        alignment: "right",
+      },
       { text: "", style: "tableTotal" },
-      { text: formatCurrency(totaux.moinsVerse), style: "tableTotal", alignment: "right" },
+      {
+        text: formatCurrency(totaux.moinsVerse),
+        style: "tableTotal",
+        alignment: "right",
+      },
       { text: "", style: "tableTotal" },
-      { text: formatCurrency(totaux.moinsVerseRetard), style: "tableTotal", alignment: "right" },
+      {
+        text: formatCurrency(totaux.moinsVerseRetard),
+        style: "tableTotal",
+        alignment: "right",
+      },
       { text: "", style: "tableTotal" },
-      { text: formatCurrency(totaux.nonVerse), style: "tableTotal", alignment: "right" },
+      {
+        text: formatCurrency(totaux.nonVerse),
+        style: "tableTotal",
+        alignment: "right",
+      },
+      {
+        text: formatCurrency(totaux.reg),
+        style: "tableTotal",
+        alignment: "right",
+      },
+      {
+        text: formatCurrency(totaux.nonReg),
+        style: "tableTotal",
+        alignment: "right",
+      },
+      {
+        text: formatCurrency(totaux.prelevement),
+        style: "tableTotal",
+        alignment: "right",
+      },
     ]);
 
     const infoBlock: Content = {
@@ -535,10 +759,22 @@ export const abattementExportService = {
         {
           margin: [0, 4, 0, 2],
           columns: [
-            { width: 14, canvas: [{ type: "rect", x: 0, y: 0, w: 14, h: 10, color: COULEUR_RETARDS }] },
+            {
+              width: 14,
+              canvas: [
+                {
+                  type: "rect",
+                  x: 0,
+                  y: 0,
+                  w: 14,
+                  h: 10,
+                  color: COULEUR_RETARDS,
+                },
+              ],
+            },
             {
               width: "*",
-              text: "En cas de retard de versement, renseigner l'heure de versement : l'abattement correspondant est calculé automatiquement.",
+              text: "En cas de retard de versement (paiement intégral, après l'heure limite), l'abattement correspondant est calculé automatiquement.",
               style: "legendeTexte",
               margin: [6, 0, 0, 0],
             },
@@ -547,10 +783,22 @@ export const abattementExportService = {
         {
           margin: [0, 2, 0, 2],
           columns: [
-            { width: 14, canvas: [{ type: "rect", x: 0, y: 0, w: 14, h: 10, color: COULEUR_MOINS_VERSE }] },
+            {
+              width: 14,
+              canvas: [
+                {
+                  type: "rect",
+                  x: 0,
+                  y: 0,
+                  w: 14,
+                  h: 10,
+                  color: COULEUR_MOINS_VERSE,
+                },
+              ],
+            },
             {
               width: "*",
-              text: "En cas de moins versé, le montant manquant et l'abattement correspondant sont calculés automatiquement.",
+              text: "En cas de moins versé, l'abattement correspondant est calculé automatiquement.",
               style: "legendeTexte",
               margin: [6, 0, 0, 0],
             },
@@ -559,19 +807,43 @@ export const abattementExportService = {
         {
           margin: [0, 2, 0, 2],
           columns: [
-            { width: 14, canvas: [{ type: "rect", x: 0, y: 0, w: 14, h: 10, color: COULEUR_MOINS_VERSE_RETARD }] },
+            {
+              width: 14,
+              canvas: [
+                {
+                  type: "rect",
+                  x: 0,
+                  y: 0,
+                  w: 14,
+                  h: 10,
+                  color: COULEUR_MOINS_VERSE_RETARD,
+                },
+              ],
+            },
             {
               width: "*",
-              text: "En cas de moins versé avec retard, le montant manquant et l'abattement correspondant sont calculés automatiquement.",
+              text: "En cas de moins versé avec retard, l'abattement correspondant est calculé automatiquement.",
               style: "legendeTexte",
               margin: [6, 0, 0, 0],
             },
           ],
         },
         {
-          margin: [0, 2, 0, 0],
+          margin: [0, 2, 0, 2],
           columns: [
-            { width: 14, canvas: [{ type: "rect", x: 0, y: 0, w: 14, h: 10, color: COULEUR_NON_VERSE }] },
+            {
+              width: 14,
+              canvas: [
+                {
+                  type: "rect",
+                  x: 0,
+                  y: 0,
+                  w: 14,
+                  h: 10,
+                  color: COULEUR_NON_VERSE,
+                },
+              ],
+            },
             {
               width: "*",
               text: "En cas de non versé, l'abattement est calculé sur le total des ventes de la journée.",
@@ -579,6 +851,11 @@ export const abattementExportService = {
               margin: [6, 0, 0, 0],
             },
           ],
+        },
+        {
+          margin: [0, 6, 0, 0],
+          text: "REG = moins versé ou non versé RÉGULARISÉ (le manquant a fini par être comblé, sans limite de délai). NON REG = moins versé ET non versé NON régularisé à ce jour.",
+          style: "legendeTexte",
         },
       ],
     };
@@ -615,7 +892,7 @@ export const abattementExportService = {
       version: encryption.version ?? "1.7ext3",
       pageOrientation: "landscape",
       pageSize: "A4",
-      pageMargins: [40, 90, 40, 60],
+      pageMargins: [30, 90, 30, 60],
       header: (currentPage: number, pageCount: number) => ({
         margin: [40, 24, 40, 0],
         columns: [
@@ -623,10 +900,17 @@ export const abattementExportService = {
             width: "*",
             stack: [
               { text: "Loterie Nationale Togolaise", style: "brandName" },
-              { text: "Tableau Récapitulatif des Abattements", style: "brandSubtitle" },
+              {
+                text: "Tableau Récapitulatif des Abattements",
+                style: "brandSubtitle",
+              },
             ],
           },
-          { width: "auto", text: `Page ${currentPage} / ${pageCount}`, style: "pageIndicator" },
+          {
+            width: "auto",
+            text: `Page ${currentPage} / ${pageCount}`,
+            style: "pageIndicator",
+          },
         ],
       }),
       footer: (currentPage: number, pageCount: number) => ({
@@ -634,7 +918,15 @@ export const abattementExportService = {
         stack: [
           {
             canvas: [
-              { type: "line", x1: 0, y1: 0, x2: 762, y2: 0, lineWidth: 0.75, lineColor: COULEUR_SECONDAIRE },
+              {
+                type: "line",
+                x1: 0,
+                y1: 0,
+                x2: 782,
+                y2: 0,
+                lineWidth: 0.75,
+                lineColor: COULEUR_SECONDAIRE,
+              },
             ],
           },
           {
@@ -645,25 +937,54 @@ export const abattementExportService = {
                 text: `Document confidentiel - Réf. ${metadata.reference} - © ${new Date().getFullYear()} Loterie Nationale Togolaise`,
                 style: "footerText",
               },
-              { width: "auto", text: `Page ${currentPage}/${pageCount}`, style: "footerText" },
+              {
+                width: "auto",
+                text: `Page ${currentPage}/${pageCount}`,
+                style: "footerText",
+              },
             ],
           },
         ],
       }),
       content: [
-        { text: "TABLEAU RECAPITULATIF DES ABATTEMENTS", style: "header", alignment: "center" },
-        { text: `Généré le ${formatDateHeureCourte(metadata.dateGeneration)}`, style: "subheader", alignment: "center" },
+        {
+          text: "TABLEAU RECAPITULATIF DES ABATTEMENTS",
+          style: "header",
+          alignment: "center",
+        },
+        {
+          text: `Généré le ${formatDateHeureCourte(metadata.dateGeneration)}`,
+          style: "subheader",
+          alignment: "center",
+        },
         infoBlock,
         {
           style: "tableExample",
           table: {
             headerRows: 2,
             dontBreakRows: true,
-            widths: ["auto", "auto", "auto", "auto", "auto", "auto", "auto", "auto", "auto", "auto", "auto", "auto", "auto", "auto"],
+            widths: [
+              "auto",
+              "auto",
+              "auto",
+              "auto",
+              "auto",
+              "auto",
+              "auto",
+              "auto",
+              "auto",
+              "auto",
+              "auto",
+              "auto",
+              "auto",
+              "auto",
+              "auto",
+              "auto",
+              "auto",
+            ],
             body: tableBody,
           },
-          // Grille complète noire fine, façon Excel — sur toutes les lignes
-          // et colonnes, pas seulement sous l'en-tête.
+          // Grille complète noire fine, façon Excel.
           layout: {
             hLineWidth: () => 0.75,
             vLineWidth: () => 0.75,
@@ -676,24 +997,68 @@ export const abattementExportService = {
       ],
       styles: {
         header: { fontSize: 14, bold: true, margin: [0, 0, 0, 2] },
-        subheader: { fontSize: 8, italics: true, margin: [0, 0, 0, 10], color: "#555555" },
+        subheader: {
+          fontSize: 8,
+          italics: true,
+          margin: [0, 0, 0, 10],
+          color: "#555555",
+        },
         infoText: { fontSize: 8, color: "#333333" },
-        avertissement: { fontSize: 8, bold: true, color: COULEUR_AVERTISSEMENT },
+        avertissement: {
+          fontSize: 8,
+          bold: true,
+          color: COULEUR_AVERTISSEMENT,
+        },
         brandName: { fontSize: 11, bold: true, color: "#00843D" },
         brandSubtitle: { fontSize: 9, color: COULEUR_SECONDAIRE },
         pageIndicator: { fontSize: 8, color: "#555555" },
         footerText: { fontSize: 7, color: "#777777" },
-        simpleHeader: { bold: true, fontSize: 7, color: "#000000", fillColor: COULEUR_ENTETE_SIMPLE },
-        groupHeaderRetards: { bold: true, fontSize: 7, color: "#000000", fillColor: COULEUR_RETARDS },
-        groupHeaderMoinsVerse: { bold: true, fontSize: 7, color: "#000000", fillColor: COULEUR_MOINS_VERSE },
-        groupHeaderMoinsVerseRetard: { bold: true, fontSize: 7, color: "#000000", fillColor: COULEUR_MOINS_VERSE_RETARD },
-        groupHeaderNonVerse: { bold: true, fontSize: 7, color: "#000000", fillColor: COULEUR_NON_VERSE },
-        tableTotal: { bold: true, fontSize: 7, fillColor: COULEUR_FOND_TOTAL },
+        simpleHeader: {
+          bold: true,
+          fontSize: 6.5,
+          color: "#000000",
+          fillColor: COULEUR_ENTETE_SIMPLE,
+        },
+        groupHeaderRetards: {
+          bold: true,
+          fontSize: 6.5,
+          color: "#000000",
+          fillColor: COULEUR_RETARDS,
+        },
+        groupHeaderMoinsVerse: {
+          bold: true,
+          fontSize: 6.5,
+          color: "#000000",
+          fillColor: COULEUR_MOINS_VERSE,
+        },
+        groupHeaderMoinsVerseRetard: {
+          bold: true,
+          fontSize: 6.5,
+          color: "#000000",
+          fillColor: COULEUR_MOINS_VERSE_RETARD,
+        },
+        groupHeaderNonVerse: {
+          bold: true,
+          fontSize: 6.5,
+          color: "#000000",
+          fillColor: COULEUR_NON_VERSE,
+        },
+        groupHeaderStatutMvNv: {
+          bold: true,
+          fontSize: 6.5,
+          color: "#000000",
+          fillColor: COULEUR_STATUT_MVNV,
+        },
+        tableTotal: {
+          bold: true,
+          fontSize: 6.5,
+          fillColor: COULEUR_FOND_TOTAL,
+        },
         tableExample: { margin: [0, 5, 0, 0] },
         legendeTitre: { fontSize: 8, bold: true, margin: [0, 0, 0, 2] },
         legendeTexte: { fontSize: 7, color: "#333333" },
       },
-      defaultStyle: { fontSize: 7 },
+      defaultStyle: { fontSize: 6.5 },
     };
 
     return printer.createPdfKitDocument(docDefinition);

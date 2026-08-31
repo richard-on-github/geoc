@@ -14,13 +14,6 @@ export interface AbattementQueryParams {
   sortOrder?: "asc" | "desc";
 }
 
-export interface VersementInput {
-  venteId: string;
-  montantVerse: number;
-  /** ISO 8601, ex: "2026-08-04T14:32:00.000Z" */
-  dateVersement: string;
-}
-
 export interface AbattementParametresInput {
   heureLimiteUTC?: number;
   tauxRetard?: number;

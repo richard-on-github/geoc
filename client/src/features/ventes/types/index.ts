@@ -38,6 +38,8 @@ export interface Vente {
   mois: number
   /** Année civile, calculée côté backend à partir de dateDebut. */
   annee: number
+  /** Statut d'encaissement du solde à verser, mis à jour à chaque encaissement enregistré. */
+  statutEncaissement: StatutEncaissement
   createdAt: string
   updatedAt: string
   agence?: {
@@ -91,4 +93,46 @@ export interface EmailAutorise {
     email: string
   }
   createdAt: string
+}
+
+export type StatutEncaissement = 'NON_ENCAISSE' | 'PARTIEL' | 'COMPLET'
+
+export const STATUT_ENCAISSEMENT_LABELS: Record<StatutEncaissement, string> = {
+  NON_ENCAISSE: 'Non encaissé',
+  PARTIEL: 'Partiel',
+  COMPLET: 'Complet',
+}
+
+export interface Encaissement {
+  id: string
+  venteId: string
+  montant: number
+  dateEncaissement: string
+  enregistrePar?: {
+    nom: string
+    prenom: string
+    email: string
+  }
+  createdAt: string
+}
+
+export interface EncaissementInput {
+  venteId: string
+  montant: number
+  /** ISO 8601 */
+  dateEncaissement: string
+}
+
+export interface EncaissementResult {
+  encaissement: Encaissement
+  montantEncaisseCumule: number
+  totalSolde: number
+  statutEncaissement: StatutEncaissement
+}
+
+export interface HistoriqueEncaissement {
+  encaissements: Encaissement[]
+  montantEncaisseCumule: number
+  totalSolde: number
+  statutEncaissement: StatutEncaissement
 }

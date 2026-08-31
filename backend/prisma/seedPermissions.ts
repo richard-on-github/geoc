@@ -106,6 +106,14 @@ export const permissionsData: readonly PermissionItem[] = [
     description:
       "Permet de valider et clôturer manuellement les ventes d'une période mensuelle.",
   },
+
+  {
+    code: "vente.encaissement.manage",
+    nom: "Encaisser les ventes",
+    description:
+      "Permet d'enregistrer les encaissements (versements) des opérateurs sur le solde à verser d'une vente.",
+  },
+
   {
     code: "vente.export.csv",
     nom: "Exporter les ventes (CSV)",
@@ -143,12 +151,7 @@ export const permissionsData: readonly PermissionItem[] = [
     description:
       "Permet de consulter le tableau récapitulatif des abattements et d'exporter des rapports.",
   },
-  {
-    code: "abattement.versement.manage",
-    nom: "Enregistrer les versements",
-    description:
-      "Permet de saisir le montant et la date/heure des versements des opérateurs.",
-  },
+
   {
     code: "abattement.parametres.manage",
     nom: "Configurer les abattements",

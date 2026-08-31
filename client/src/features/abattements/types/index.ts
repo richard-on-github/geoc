@@ -1,23 +1,18 @@
 export type StatutAbattement =
-  | 'AUCUN'
-  | 'RETARD'
-  | 'MOINS_VERSE'
-  | 'MOINS_VERSE_AVEC_RETARD'
-  | 'NON_VERSE'
+  'AUCUN' | 'RETARD' | 'MOINS_VERSE' | 'MOINS_VERSE_AVEC_RETARD' | 'NON_VERSE'
+
+export type StatutRegularisation = 'NON_APPLICABLE' | 'REG' | 'NON_REG'
 
 export interface AbattementCalcule {
   statut: StatutAbattement
-  heureVersement: string | null
-  /** Montant sur lequel le taux est appliqué (manquant, ou total des ventes pour un simple retard). */
+  dateCompletion: string | null
   assiette: number
   tauxApplique: number
   montantAbattement: number
-}
-
-export interface VersementInfo {
-  id: string
-  montantVerse: number
-  dateVersement: string
+  montantEncaisseCumule: number
+  totalSolde: number
+  regularisation: StatutRegularisation
+  montantRegularisation: number
 }
 
 export interface VenteAvecAbattement {
@@ -35,7 +30,6 @@ export interface VenteAvecAbattement {
   jourAnnee: number
   mois: number
   annee: number
-  abattementVersement?: VersementInfo | null
   agence?: {
     nom: string
     code: string
@@ -80,17 +74,6 @@ export interface AbattementQueryParams {
   sortOrder?: 'asc' | 'desc' | undefined
 }
 
-export interface VersementInput {
-  venteId: string
-  montantVerse: number
-  /** ISO 8601 */
-  dateVersement: string
-}
-
-/**
- * Filtres "classiques" du module abattements (recherche, agence, dates, statut),
- * sur le même principe que VenteFiltersState.
- */
 export interface AbattementFiltersState {
   search: string
   agenceId?: string | undefined
@@ -107,5 +90,11 @@ export const STATUT_ABATTEMENT_LABELS: Record<StatutAbattement, string> = {
   NON_VERSE: 'Non versé',
 }
 
-/** Les 4 vues de navigation Jours/Mois/Années/Général, sur le même principe que VenteViewMode. */
+export const STATUT_REGULARISATION_LABELS: Record<StatutRegularisation, string> = {
+  NON_APPLICABLE: '-',
+  REG: 'Régularisé',
+  NON_REG: 'Non régularisé',
+}
+
+/** Les 4 vues de navigation Jours/Mois/Années/Général. */
 export type AbattementViewMode = 'jours' | 'mois' | 'annees' | 'general'

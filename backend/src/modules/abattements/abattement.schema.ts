@@ -17,20 +17,6 @@ export const abattementQuerySchema = z.object({
   sortOrder: z.enum(["asc", "desc"]).default("desc"),
 });
 
-export const venteIdParamsSchema = z.object({
-  venteId: z.string().cuid("ID de vente invalide"),
-});
-
-export const versementInputSchema = z.object({
-  venteId: z.string().cuid("ID de vente invalide"),
-  montantVerse: z.coerce
-    .number()
-    .min(0, { message: "Le montant versé ne peut pas être négatif." }),
-  dateVersement: z.string().datetime({
-    message: "La date de versement doit être une date ISO 8601 valide.",
-  }),
-});
-
 /** Toutes les valeurs sont optionnelles à la mise à jour, mais au moins une doit être fournie. */
 export const abattementParametresUpdateSchema = z
   .object({

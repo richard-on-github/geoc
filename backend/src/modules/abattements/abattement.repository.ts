@@ -4,17 +4,13 @@ import type { AbattementQueryParams } from "./abattement.interface.js";
 
 const PARAMETRES_SINGLETON_ID = "singleton";
 
-export type VenteAvecVersement = Prisma.VenteGetPayload<{
+export type VenteAvecEncaissements = Prisma.VenteGetPayload<{
   include: {
-    abattementVersement: true;
+    encaissements: true;
     agence: { select: { nom: true; code: true } };
   };
 }>;
 
-/**
- * Construit la clause `where` Prisma commune à la liste paginée et aux
- * exports (mêmes filtres, avec ou sans pagination).
- */
 export function buildAbattementWhere(
   params: Pick<
     AbattementQueryParams,
@@ -46,10 +42,10 @@ export function buildAbattementWhere(
 }
 
 export const abattementRepository = {
-  async findVentesAvecVersement(
+  async findVentesAvecEncaissements(
     params: AbattementQueryParams,
   ): Promise<{
-    ventes: VenteAvecVersement[];
+    ventes: VenteAvecEncaissements[];
     total: number;
     page: number;
     limit: number;
@@ -68,7 +64,7 @@ export const abattementRepository = {
       prisma.vente.findMany({
         where,
         include: {
-          abattementVersement: true,
+          encaissements: true,
           agence: { select: { nom: true, code: true } },
         },
         skip,
@@ -81,41 +77,19 @@ export const abattementRepository = {
     return { ventes, total, page, limit };
   },
 
-  /** Sans pagination : utilisé par les exports (CSV/Excel/PDF portent sur l'ensemble des lignes filtrées). */
-  async findAllVentesAvecVersement(
+  async findAllVentesAvecEncaissements(
     params: AbattementQueryParams,
-  ): Promise<VenteAvecVersement[]> {
+  ): Promise<VenteAvecEncaissements[]> {
     const { sortBy = "dateDebut", sortOrder = "desc" } = params;
     const where = buildAbattementWhere(params);
 
     return prisma.vente.findMany({
       where,
       include: {
-        abattementVersement: true,
+        encaissements: true,
         agence: { select: { nom: true, code: true } },
       },
       orderBy: { [sortBy]: sortOrder },
-    });
-  },
-
-  async findVenteById(id: string) {
-    return prisma.vente.findUnique({ where: { id } });
-  },
-
-  async findVersementByVenteId(venteId: string) {
-    return prisma.abattementVersement.findUnique({ where: { venteId } });
-  },
-
-  async upsertVersement(
-    venteId: string,
-    montantVerse: number,
-    dateVersement: Date,
-    actorId: string,
-  ) {
-    return prisma.abattementVersement.upsert({
-      where: { venteId },
-      update: { montantVerse, dateVersement, renseigneParId: actorId },
-      create: { venteId, montantVerse, dateVersement, renseigneParId: actorId },
     });
   },
 
