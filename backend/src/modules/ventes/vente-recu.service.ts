@@ -248,7 +248,6 @@ function buildReceiptBlock(
 }
 
 export const venteRecuService = {
-  // Ajout du paramètre agentConnecte
   async generatePDF(
     encaissementId: string,
     agentConnecte: string,
