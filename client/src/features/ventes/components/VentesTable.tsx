@@ -17,6 +17,7 @@ import {
   Lock,
   Unlock,
   Wallet,
+  CheckCircle2,
 } from 'lucide-react'
 import { useVentes } from '../hooks'
 import { EmptyState } from '@/shared/components/feedback/EmptyState'
@@ -39,9 +40,9 @@ interface VentesTableProps {
 const PAGE_SIZES = [10, 20, 50]
 
 const STATUT_ENCAISSEMENT_STYLES: Record<Vente['statutEncaissement'], string> = {
-  NON_ENCAISSE: 'bg-red-100 text-red-700',
-  PARTIEL: 'bg-amber-100 text-amber-700',
-  COMPLET: 'bg-green-100 text-green-700',
+  NON_SOLDE: 'bg-red-100 text-red-700',
+  PARTIELLEMENT_SOLDE: 'bg-amber-100 text-amber-700',
+  SOLDE: 'bg-green-100 text-green-700',
 }
 
 export function VentesTable({ filters }: VentesTableProps) {
@@ -57,6 +58,7 @@ export function VentesTable({ filters }: VentesTableProps) {
     filters.dateDebut,
     filters.dateFin,
     filters.clotureId,
+    filters.statutEncaissement,
     filters.nonClotureesOnly,
     filters.jour,
     filters.mois,
@@ -79,6 +81,7 @@ export function VentesTable({ filters }: VentesTableProps) {
       dateDebut: toOptionalString(filters.dateDebut),
       dateFin: toOptionalString(filters.dateFin),
       clotureId: toOptionalString(filters.clotureId),
+      statutEncaissement: filters.statutEncaissement,
       nonClotureesOnly: filters.nonClotureesOnly === true ? true : undefined,
       jour: filters.jour,
       mois: filters.mois,
@@ -210,20 +213,26 @@ export function VentesTable({ filters }: VentesTableProps) {
         id: 'action',
         header: '',
         enableSorting: false,
-        cell: ({ row }) => (
-          <Can permission="vente.encaissement.manage">
-            <button
-              type="button"
-              onClick={() => {
-                setVenteSelectionnee(row.original)
-              }}
-              className="flex items-center gap-1 text-xs font-medium text-[hsl(var(--primary))] hover:underline"
-            >
-              <Wallet size={14} />
-              Encaisser
-            </button>
-          </Can>
-        ),
+        cell: ({ row }) => {
+          const estSolde = row.original.statutEncaissement === 'SOLDE'
+          return (
+            <Can permission="vente.encaissement.manage">
+              <button
+                type="button"
+                onClick={() => {
+                  setVenteSelectionnee(row.original)
+                }}
+                className={cn(
+                  'flex items-center gap-1 text-xs font-medium hover:underline',
+                  estSolde ? 'text-green-600' : 'text-[hsl(var(--primary))]',
+                )}
+              >
+                {estSolde ? <CheckCircle2 size={14} /> : <Wallet size={14} />}
+                {estSolde ? 'Soldé' : 'Encaisser'}
+              </button>
+            </Can>
+          )
+        },
       },
     ],
     [],

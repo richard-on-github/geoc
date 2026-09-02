@@ -3,15 +3,24 @@ import { venteEncaissementService } from "./vente-encaissement.service.js";
 import { successResponse } from "../../utils/response.js";
 import { HTTP_STATUS } from "../../constants/http-status.js";
 import type { EncaissementInput } from "./vente-encaissement.interface.js";
+import { userHasPermission } from "../../utils/permissions.js";
 
 export const venteEncaissementController = {
   async create(req: Request, res: Response, next: NextFunction) {
-    const { venteId, montant, dateEncaissement } = req.body as EncaissementInput;
+    const { venteId, montant, dateEncaissement } =
+      req.body as EncaissementInput;
+
+    const peutEncaisserPartiel = await userHasPermission(
+      req.user!.id,
+      "vente.encaissement.partiel.manage",
+    );
+
     const result = await venteEncaissementService.enregistrerEncaissement(
       venteId,
       montant,
       new Date(dateEncaissement),
       req.user!.id,
+      peutEncaisserPartiel,
       req.ip,
     );
     successResponse(

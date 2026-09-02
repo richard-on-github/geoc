@@ -18,7 +18,7 @@ import { ventesApi } from '../api'
 import { useDebounce } from '@/shared/hooks/useDebounce'
 import { Can } from '@/shared/components/navigation/Can'
 import { cn } from '@/shared/lib'
-import type { VenteFiltersState, VenteViewMode } from '../types'
+import type { VenteFiltersState, VenteViewMode, StatutEncaissement } from '../types'
 import type { VentePeriodeFilters } from '../hooks'
 
 interface VenteFiltersProps {
@@ -42,6 +42,7 @@ export function VenteFilters({ onFilterChange, viewMode, periodeFilters }: Vente
   const [dateDebut, setDateDebut] = useState('')
   const [dateFin, setDateFin] = useState('')
   const [clotureId, setClotureId] = useState('')
+  const [statutEncaissement, setStatutEncaissement] = useState('')
   const [nonClotureesOnly, setNonClotureesOnly] = useState(false)
 
   // États existants (import de fichier)
@@ -71,6 +72,9 @@ export function VenteFilters({ onFilterChange, viewMode, periodeFilters }: Vente
       ...(dateDebut !== '' ? { dateDebut } : {}),
       ...(dateFin !== '' ? { dateFin } : {}),
       ...(clotureId !== '' ? { clotureId } : {}),
+      ...(statutEncaissement !== ''
+        ? { statutEncaissement: statutEncaissement as StatutEncaissement }
+        : {}),
       nonClotureesOnly: estVueGenerale ? nonClotureesOnly : false,
     })
   }, [
@@ -79,6 +83,7 @@ export function VenteFilters({ onFilterChange, viewMode, periodeFilters }: Vente
     dateDebut,
     dateFin,
     clotureId,
+    statutEncaissement,
     nonClotureesOnly,
     estVueGenerale,
     onFilterChange,
@@ -124,6 +129,9 @@ export function VenteFilters({ onFilterChange, viewMode, periodeFilters }: Vente
         ...(dateDebut !== '' ? { dateDebut } : {}),
         ...(dateFin !== '' ? { dateFin } : {}),
         ...(clotureId !== '' ? { clotureId } : {}),
+        ...(statutEncaissement !== ''
+          ? { statutEncaissement: statutEncaissement as StatutEncaissement }
+          : {}),
         ...(estVueGenerale && nonClotureesOnly ? { nonClotureesOnly } : {}),
         ...periodeFilters,
       }
@@ -162,6 +170,7 @@ export function VenteFilters({ onFilterChange, viewMode, periodeFilters }: Vente
     setDateDebut('')
     setDateFin('')
     setClotureId('')
+    setStatutEncaissement('')
     setNonClotureesOnly(false)
   }
 
@@ -234,6 +243,19 @@ export function VenteFilters({ onFilterChange, viewMode, periodeFilters }: Vente
           }}
           className="rounded-(--radius) border border-[hsl(var(--input))] bg-[hsl(var(--card))] px-3 py-2 text-sm focus:ring-2 focus:ring-[hsl(var(--ring))] focus:outline-none"
         />
+
+        <select
+          value={statutEncaissement}
+          onChange={(e) => {
+            setStatutEncaissement(e.target.value)
+          }}
+          className="rounded-(--radius) border border-[hsl(var(--input))] bg-[hsl(var(--card))] px-3 py-2 text-sm focus:ring-2 focus:ring-[hsl(var(--ring))] focus:outline-none"
+        >
+          <option value="">Tous statuts d'encaissement</option>
+          <option value="NON_SOLDE">Non soldé</option>
+          <option value="PARTIELLEMENT_SOLDE">Partiellement soldé</option>
+          <option value="SOLDE">Soldé</option>
+        </select>
 
         <button
           type="button"

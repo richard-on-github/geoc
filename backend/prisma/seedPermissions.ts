@@ -113,7 +113,12 @@ export const permissionsData: readonly PermissionItem[] = [
     description:
       "Permet d'enregistrer les encaissements (versements) des opérateurs sur le solde à verser d'une vente.",
   },
-
+  {
+    code: "vente.encaissement.partiel.manage",
+    nom: "Encaisser un solde partiel",
+    description:
+      "Permet d'enregistrer un encaissement qui ne solde pas entièrement le montant dû. Sans cette permission, seul un encaissement soldant intégralement le solde est autorisé.",
+  },
   {
     code: "vente.export.csv",
     nom: "Exporter les ventes (CSV)",

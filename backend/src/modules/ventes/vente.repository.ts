@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client";
+import { Prisma, StatutEncaissement } from "@prisma/client";
 import { prisma } from "../../config/prisma.js";
 import type { VenteQueryParams } from "./vente.interface.js";
 
@@ -14,6 +14,7 @@ export const venteRepository = {
       dateFin,
       clotureId,
       nonClotureesOnly,
+      statutEncaissement,
       jour,
       mois,
       annee,
@@ -42,6 +43,10 @@ export const venteRepository = {
 
     if (clotureId) {
       where.clotureId = clotureId;
+    }
+
+    if (statutEncaissement) {
+      where.statutEncaissement = statutEncaissement as StatutEncaissement;
     }
 
     if (dateDebut || dateFin) {

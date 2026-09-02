@@ -37,9 +37,9 @@ enum TypeImport {
 }
 
 enum StatutEncaissement {
-  NON_ENCAISSE
-  PARTIEL
-  COMPLET
+  NON_SOLDE
+  PARTIELLEMENT_SOLDE
+  SOLDE
 }
 
 model User {
@@ -259,7 +259,7 @@ model Vente {
   mois      Int
   annee     Int
 
-  statutEncaissement StatutEncaissement @default(NON_ENCAISSE)
+  statutEncaissement StatutEncaissement @default(NON_SOLDE)
   encaissements      Encaissement[]
 
   importId  String?

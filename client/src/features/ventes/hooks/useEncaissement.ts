@@ -24,17 +24,19 @@ export function useEnregistrerEncaissement() {
       })
       toast.success(
         `Encaissement enregistré. Statut : ${
-          result.statutEncaissement === 'COMPLET'
-            ? 'complet'
-            : result.statutEncaissement === 'PARTIEL'
-              ? 'partiel'
-              : 'non encaissé'
+          result.statutEncaissement === 'SOLDE'
+            ? 'soldé'
+            : result.statutEncaissement === 'PARTIELLEMENT_SOLDE'
+              ? 'partiellement soldé'
+              : 'non soldé'
         }.`,
       )
     },
     onError: (error) => {
       toast.error(
-        error instanceof ApiError ? error.message : "Erreur lors de l'enregistrement de l'encaissement.",
+        error instanceof ApiError
+          ? error.message
+          : "Erreur lors de l'enregistrement de l'encaissement.",
       )
     },
   })

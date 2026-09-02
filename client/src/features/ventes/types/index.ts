@@ -57,6 +57,7 @@ export interface VenteQueryParams {
   dateFin?: string | undefined
   clotureId?: string | undefined
   nonClotureesOnly?: boolean | undefined
+  statutEncaissement?: StatutEncaissement | undefined
   jour?: number | undefined
   mois?: number | undefined
   annee?: number | undefined
@@ -72,6 +73,7 @@ export interface VenteFiltersState {
   dateDebut?: string
   dateFin?: string
   clotureId?: string
+  statutEncaissement?: StatutEncaissement
   nonClotureesOnly?: boolean
 }
 
@@ -95,12 +97,12 @@ export interface EmailAutorise {
   createdAt: string
 }
 
-export type StatutEncaissement = 'NON_ENCAISSE' | 'PARTIEL' | 'COMPLET'
+export type StatutEncaissement = 'NON_SOLDE' | 'PARTIELLEMENT_SOLDE' | 'SOLDE'
 
 export const STATUT_ENCAISSEMENT_LABELS: Record<StatutEncaissement, string> = {
-  NON_ENCAISSE: 'Non encaissé',
-  PARTIEL: 'Partiel',
-  COMPLET: 'Complet',
+  NON_SOLDE: 'Non soldé',
+  PARTIELLEMENT_SOLDE: 'Partiellement soldé',
+  SOLDE: 'Soldé',
 }
 
 export interface Encaissement {

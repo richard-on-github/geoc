@@ -45,12 +45,16 @@ function asNumber(value: unknown): number {
   return typeof value === 'number' ? value : Number(value)
 }
 
-const STATUTS_ENCAISSEMENT: readonly StatutEncaissement[] = ['NON_ENCAISSE', 'PARTIEL', 'COMPLET']
+const STATUTS_ENCAISSEMENT: readonly StatutEncaissement[] = [
+  'NON_SOLDE',
+  'PARTIELLEMENT_SOLDE',
+  'SOLDE',
+]
 
 function asStatutEncaissement(value: unknown): StatutEncaissement {
   return typeof value === 'string' && (STATUTS_ENCAISSEMENT as readonly string[]).includes(value)
     ? (value as StatutEncaissement)
-    : 'NON_ENCAISSE'
+    : 'NON_SOLDE'
 }
 
 function mapVente(raw: VenteApiRaw): Vente {
@@ -206,5 +210,24 @@ export const ventesApi = {
       `${BASE_URL}/${venteId}/encaissements`,
     )
     return response.data.data
+  },
+
+  /**
+   * Contrairement aux exports, le reçu est un PDF simple non chiffré
+   * (destiné à être imprimé/remis en main propre) : pas de zip, pas de mot
+   * de passe. Ouvert directement dans un nouvel onglet.
+   */
+  async telechargerRecu(encaissementId: string): Promise<void> {
+    const response = await axiosInstance.get(`${BASE_URL}/encaissements/${encaissementId}/recu`, {
+      responseType: 'blob',
+    })
+
+    const blob = new Blob([response.data], { type: 'application/pdf' })
+    const url = URL.createObjectURL(blob)
+    window.open(url, '_blank')
+    // Laisse le temps au navigateur d'ouvrir l'onglet avant de libérer l'URL.
+    setTimeout(() => {
+      URL.revokeObjectURL(url)
+    }, 10000)
   },
 }

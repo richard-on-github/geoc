@@ -8,6 +8,8 @@ export interface VenteQueryParams {
   dateFin?: string;
   clotureId?: string;
   nonClotureesOnly?: boolean;
+  /** Filtre sur le statut d'encaissement (NON_SOLDE, PARTIELLEMENT_SOLDE, SOLDE). */
+  statutEncaissement?: string;
   /** Jour de l'année (1-366), calculé à partir de dateDebut. Indépendant de dateDebut/dateFin. */
   jour?: number;
   /** Mois (1-12), calculé à partir de dateDebut. */

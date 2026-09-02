@@ -18,7 +18,26 @@ const app = express();
 
 app.set("trust proxy", "loopback");
 
-app.use(cors());
+const allowedOrigins = [
+  "http://localhost:8000",
+  process.env.FRONTEND_URL,
+].filter(Boolean);
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+
+      if (allowedOrigins.indexOf(origin) === -1) {
+        return callback(new Error("Bloqué par la politique CORS"), false);
+      }
+      return callback(null, true);
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+  }),
+);
+
 app.use(express.json());
 
 app.use(ROUTES.AUTH.BASE, authRouter);
