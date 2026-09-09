@@ -1,13 +1,9 @@
 import { venteEncaissementRepository } from "./vente-encaissement.repository.js";
 import { ApiError } from "../../utils/ApiError.js";
 import { logAudit } from "../../utils/audit.js";
-import { AuditAction, StatutEncaissement } from "@prisma/client";
+import { AuditAction, Encaissement, StatutEncaissement } from "@prisma/client";
+import { brouillardService } from "../brouillard/brouillard.service.js";
 
-/**
- * Détermine le statut d'encaissement en comparant le cumul encaissé au
- * "total à solder" (Vente.totalSolde — PAS totalVente, qui lui ne sert qu'au
- * calcul de l'abattement, cf. module abattements).
- */
 function computeStatutEncaissement(
   montantEncaisseCumule: number,
   totalSolde: number,
@@ -68,6 +64,24 @@ export const venteEncaissementService = {
     await venteEncaissementRepository.updateStatutEncaissement(
       venteId,
       nouveauStatut,
+    );
+
+    const tousLesEncaissements =
+      await venteEncaissementRepository.findEncaissementsByVenteId(venteId);
+
+    await brouillardService.recalculer(
+      {
+        id: vente.id,
+        agenceId: vente.agenceId,
+        numeroTS10: vente.numeroTS10,
+        totalVente: vente.totalVente,
+        totalSolde: vente.totalSolde,
+        dateDebut: vente.dateDebut,
+      },
+      tousLesEncaissements.map((e: Encaissement) => ({
+        montant: e.montant,
+        dateEncaissement: e.dateEncaissement,
+      })),
     );
 
     await logAudit({

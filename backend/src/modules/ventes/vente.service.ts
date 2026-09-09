@@ -14,6 +14,8 @@ import {
   periodeToMoisAnnee,
 } from "../../utils/date-vente.js";
 
+import { brouillardService } from "../brouillard/brouillard.service.js";
+
 export const venteService = {
   async getAll(params: VenteQueryParams) {
     const { ventes, total, page, limit } =
@@ -72,8 +74,6 @@ export const venteService = {
       const { mois: moisPrecedent, annee: anneePrecedent } =
         periodeToMoisAnnee(periodePrecedente);
 
-      // On ne bloque que si la période précédente a elle-même eu des ventes
-      // (sinon rien à clôturer, cf. cloturerMois qui refuse une clôture vide).
       const ventesPeriodePrecedente = await venteRepository.countByMoisAnnee(
         moisPrecedent,
         anneePrecedent,
@@ -198,6 +198,24 @@ export const venteService = {
     };
 
     const result = await venteRepository.bulkImport(importLogData, ventesData);
+
+    const ventesImportees = await prisma.vente.findMany({
+      where: { importId: result.importLog.id },
+    });
+
+    for (const venteImportee of ventesImportees) {
+      await brouillardService.recalculer(
+        {
+          id: venteImportee.id,
+          agenceId: venteImportee.agenceId,
+          numeroTS10: venteImportee.numeroTS10,
+          totalVente: venteImportee.totalVente,
+          totalSolde: venteImportee.totalSolde,
+          dateDebut: venteImportee.dateDebut,
+        },
+        [],
+      );
+    }
 
     await logAudit({
       action: AuditAction.IMPORT,

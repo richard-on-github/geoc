@@ -3,6 +3,7 @@ import {
   Users,
   ShieldCheck,
   ClipboardList,
+  ClipboardCheck,
   Key,
   Building2,
   ShoppingCart,
@@ -61,6 +62,13 @@ export const navigationConfig: NavItem[] = [
     href: '/abattements',
     icon: Percent,
     permission: 'abattement.read',
+  },
+  {
+    id: 'brouillard',
+    label: 'Brouillard',
+    href: '/brouillard',
+    icon: ClipboardCheck,
+    permission: 'brouillard.read',
   },
   {
     id: 'security',

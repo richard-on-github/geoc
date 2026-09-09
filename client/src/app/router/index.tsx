@@ -53,6 +53,13 @@ const AbattementsListPage = lazy(() =>
   })),
 )
 
+/* ---- Pages Brouillard ---- */
+const BrouillardListPage = lazy(() =>
+  import('@/features/brouillard/pages/BrouillardListPage').then((m) => ({
+    default: m.BrouillardListPage,
+  })),
+)
+
 /* ---- Pages Security ---- */
 const RolesListPage = lazy(() =>
   import('@/features/security/pages/RolesListPage').then((m) => ({ default: m.RolesListPage })),
@@ -115,6 +122,9 @@ export const router = createBrowserRouter([
 
       // === Abattements ===
       { path: '/abattements', element: S(AbattementsListPage) },
+
+      // === Brouillard ===
+      { path: '/brouillard', element: S(BrouillardListPage) },
 
       // Sécurité
       { path: '/security/roles', element: S(RolesListPage) },

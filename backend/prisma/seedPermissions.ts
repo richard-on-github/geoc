@@ -181,6 +181,19 @@ export const permissionsData: readonly PermissionItem[] = [
     description:
       "Permet de générer des rapports d'export des abattements au format PDF.",
   },
+
+  {
+    code: "brouillard.read",
+    nom: "Consulter le brouillard journalier",
+    description:
+      "Permet de consulter le récapitulatif journalier des opérations par opérateur (ventes, encaissements, écarts, pénalités).",
+  },
+  {
+    code: "brouillard.manage",
+    nom: "Gérer le workflow du brouillard",
+    description:
+      "Permet de clôturer, valider ou rejeter un brouillard journalier.",
+  },
 ] as const;
 
 export async function seedPermissions(): Promise<void> {
