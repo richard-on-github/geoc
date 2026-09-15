@@ -1,52 +1,58 @@
 import { axiosInstance } from '@/shared/api'
-import type {
-  BrouillardItem,
-  BrouillardQueryParams,
-  ClotureBrouillardInput,
-  RejeterBrouillardInput,
-} from '../types'
+import type { BrouillardQueryParams, BrouillardResult } from '../types'
 
 const BASE_URL = '/brouillards'
 
-interface PaginationMeta {
-  total: number
-  page: number
-  limit: number
-  totalPages: number
-}
-
 export const brouillardApi = {
-  async getBrouillards(params: BrouillardQueryParams): Promise<{
-    items: BrouillardItem[]
-    pagination: PaginationMeta
-  }> {
-    const response = await axiosInstance.get<{
-      success: boolean
-      data: { items: BrouillardItem[]; pagination: PaginationMeta }
-    }>(BASE_URL, { params })
-    return response.data.data
-  },
-
-  async cloturer(id: string, input: ClotureBrouillardInput): Promise<BrouillardItem> {
-    const response = await axiosInstance.post<{ success: boolean; data: BrouillardItem }>(
-      `${BASE_URL}/${id}/cloturer`,
-      input,
+  async getBrouillard(params: BrouillardQueryParams): Promise<BrouillardResult> {
+    const response = await axiosInstance.get<{ success: boolean; data: BrouillardResult }>(
+      BASE_URL,
+      { params },
     )
     return response.data.data
   },
 
-  async valider(id: string): Promise<BrouillardItem> {
-    const response = await axiosInstance.post<{ success: boolean; data: BrouillardItem }>(
-      `${BASE_URL}/${id}/valider`,
-    )
-    return response.data.data
-  },
+  async exportBrouillard(
+    params: BrouillardQueryParams,
+    format: 'csv' | 'excel' | 'pdf',
+  ): Promise<string | null> {
+    const queryString = new URLSearchParams(
+      Object.fromEntries(
+        Object.entries(params)
+          .filter(([_, v]) => v !== undefined && v !== '')
+          .map(([k, v]) => [k, String(v)]),
+      ),
+    ).toString()
 
-  async rejeter(id: string, input: RejeterBrouillardInput): Promise<BrouillardItem> {
-    const response = await axiosInstance.post<{ success: boolean; data: BrouillardItem }>(
-      `${BASE_URL}/${id}/rejeter`,
-      input,
-    )
-    return response.data.data
+    const url = `${BASE_URL}/export/${format}?${queryString}`
+
+    const response = await axiosInstance.get(url, {
+      responseType: 'blob',
+    })
+
+    const contentTypeHeader = response.headers['content-type']
+    const contentType = typeof contentTypeHeader === 'string' ? contentTypeHeader : ''
+
+    const isUnexpectedResponse =
+      contentType.includes('text/html') || contentType.includes('application/json')
+
+    if (isUnexpectedResponse) {
+      throw new Error("Erreur lors de l'export : réponse inattendue.")
+    }
+
+    const rawExportPassword = response.headers['x-export-password'] as unknown
+    const exportPassword =
+      typeof rawExportPassword === 'string' && rawExportPassword !== '' ? rawExportPassword : null
+
+    const blob = new Blob([response.data], { type: 'application/zip' })
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(blob)
+    link.download = `brouillard_${String(Date.now())}.zip`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(link.href)
+
+    return exportPassword
   },
 }

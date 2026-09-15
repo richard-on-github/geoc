@@ -37,9 +37,7 @@ export interface PdfEncryptionOptions {
 }
 
 export interface PdfPrinterInstance {
-  createPdfKitDocument(
-    docDefinition: TDocumentDefinitions,
-  ): PDFKit.PDFDocument;
+  createPdfKitDocument(docDefinition: TDocumentDefinitions): PDFKit.PDFDocument;
   urlResolver?: {
     resolve: (url: string) => Promise<string>;
   };
@@ -148,6 +146,10 @@ export const pdfFonts: FontDescriptors = {
     normal: resolveFontPath("Roboto-Regular.ttf"),
     bold: resolveFontPath("Roboto-Bold.ttf"),
     italics: resolveFontPath("Roboto-Italic.ttf"),
+    // Déclarer 'bolditalics' avec fallback sur 'Roboto-Italic.ttf' si 'Roboto-BoldItalic.ttf' n'existe pas
+    bolditalics:
+      resolveFontPath("Roboto-BoldItalic.ttf") ||
+      resolveFontPath("Roboto-Italic.ttf"),
   },
 };
 

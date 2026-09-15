@@ -189,10 +189,22 @@ export const permissionsData: readonly PermissionItem[] = [
       "Permet de consulter le récapitulatif journalier des opérations par opérateur (ventes, encaissements, écarts, pénalités).",
   },
   {
-    code: "brouillard.manage",
-    nom: "Gérer le workflow du brouillard",
+    code: "brouillard.export.csv",
+    nom: "Exporter le brouillard (CSV)",
     description:
-      "Permet de clôturer, valider ou rejeter un brouillard journalier.",
+      "Permet de générer des rapports d'export du brouillard de caisse au format CSV.",
+  },
+  {
+    code: "brouillard.export.excel",
+    nom: "Exporter le brouillard (Excel)",
+    description:
+      "Permet de générer des rapports d'export du brouillard de caisse au format Excel.",
+  },
+  {
+    code: "brouillard.export.pdf",
+    nom: "Exporter le brouillard (PDF)",
+    description:
+      "Permet de générer des rapports d'export du brouillard de caisse au format PDF.",
   },
 ] as const;
 

@@ -1,182 +1,129 @@
-import { StatutAnomalieBrouillard, AuditAction } from "@prisma/client";
-import { brouillardRepository } from "./brouillard.repository.js";
-import { abattementRepository } from "../abattements/abattement.repository.js";
-import {
-  computeAbattement,
-  type StatutAbattement,
-} from "../abattements/abattement-calcul.js";
+import { Prisma } from "@prisma/client";
+import { prisma } from "../../config/prisma.js";
 import { ApiError } from "../../utils/ApiError.js";
-import { logAudit } from "../../utils/audit.js";
-import { getPaginationMeta } from "../../utils/pagination.js";
-import type { BrouillardQueryParams } from "./brouillard.interface.js";
+import type {
+  BrouillardQueryParams,
+  BrouillardResult,
+  LigneBrouillard,
+} from "./brouillard.interface.js";
 
-function mapStatutAbattementVersAnomalie(
-  statutAbattement: StatutAbattement,
-): StatutAnomalieBrouillard {
-  switch (statutAbattement) {
-    case "AUCUN":
-      return StatutAnomalieBrouillard.OK;
-    case "RETARD":
-      return StatutAnomalieBrouillard.RETARD;
-    case "MOINS_VERSE":
-      return StatutAnomalieBrouillard.MOINS_VERSE;
-    case "MOINS_VERSE_AVEC_RETARD":
-      return StatutAnomalieBrouillard.MOINS_VERSE_RETARD;
-    case "NON_VERSE":
-      return StatutAnomalieBrouillard.NON_VERSE;
-  }
+type EncaissementAvecVente = Prisma.EncaissementGetPayload<{
+  include: { vente: true };
+}>;
+
+function formatNumeroPiece(numeroSequence: number): string {
+  return String(numeroSequence).padStart(10, "0");
 }
 
 export const brouillardService = {
-  /**
-   * Recalcule et synchronise le brouillard d'une vente à partir de son état
-   * actuel (encaissements + abattement calculé). Reste totalement neutre
-   * (no-op) si le brouillard est déjà CLÔTURÉ/VALIDÉ/REJETÉ : une fois
-   * figé, seules les actions de workflow explicites peuvent le faire
-   * évoluer — jamais un recalcul automatique, exactement comme un arrêté
-   * comptable journalier réel.
-   *
-   * À appeler : (1) juste après la création de chaque vente importée, avec
-   * un tableau d'encaissements vide ; (2) après chaque encaissement
-   * enregistré, avec la liste complète et à jour des encaissements de
-   * cette vente.
-   */
-  async recalculer(
-    vente: {
-      id: string;
-      agenceId: string | null;
-      numeroTS10: string;
-      totalVente: number | string;
-      totalSolde: number | string;
-      dateDebut: Date;
-    },
-    encaissements: Array<{ montant: number | string; dateEncaissement: Date }>,
-  ) {
-    const existant = await brouillardRepository.findByVenteId(vente.id);
-    if (existant && existant.statut !== "OUVERT") {
-      return existant;
+  async getBrouillard(
+    params: BrouillardQueryParams,
+  ): Promise<BrouillardResult> {
+    const { agenceId, dateDebut, dateFin } = params;
+
+    let agenceNom = "Toutes agences";
+    if (agenceId) {
+      const agence = await prisma.agence.findUnique({
+        where: { id: agenceId },
+      });
+      if (!agence) {
+        throw ApiError.notFound("Agence introuvable.");
+      }
+      agenceNom = agence.nom;
     }
 
-    const parametres = await abattementRepository.getParametres();
-    const abattement = computeAbattement(
-      {
-        totalVente: vente.totalVente,
-        totalSolde: vente.totalSolde,
-        dateDebut: vente.dateDebut,
-      },
-      encaissements,
-      parametres,
-    );
+    // Sans agence précisée, on liste les encaissements de toutes les
+    // agences confondues (un seul registre global).
+    const where: Prisma.EncaissementWhereInput = agenceId
+      ? { vente: { agenceId } }
+      : {};
 
-    const totalSolde = Number(vente.totalSolde);
-    const montantVerse = encaissements.reduce(
-      (sum, e) => sum + Number(e.montant),
-      0,
-    );
-    const ecart = totalSolde - montantVerse;
-
-    // Le trop-versé prime sur la classification "timing" de l'abattement :
-    // peu importe si le paiement était dans les temps ou en retard, un
-    // montant supérieur au dû est une anomalie à part entière.
-    const statutAnomalie: StatutAnomalieBrouillard =
-      montantVerse > totalSolde
-        ? StatutAnomalieBrouillard.TROP_VERSE
-        : mapStatutAbattementVersAnomalie(abattement.statut);
-
-    return brouillardRepository.upsertPourVente({
-      venteId: vente.id,
-      journee: vente.dateDebut,
-      agenceId: vente.agenceId,
-      numeroTS10: vente.numeroTS10,
-      ventes: Number(vente.totalVente),
-      soldeAttendu: totalSolde,
-      montantVerse,
-      ecart,
-      penalite: abattement.montantAbattement,
-      statutAnomalie,
+    const encaissements = await prisma.encaissement.findMany({
+      where,
+      include: { vente: true },
+      orderBy: { dateEncaissement: "asc" },
     });
-  },
 
-  async getAll(params: BrouillardQueryParams) {
-    const { items, total, page, limit } =
-      await brouillardRepository.findAll(params);
-    const pagination = getPaginationMeta(total, page, limit);
-    return { items, pagination };
-  },
-
-  async cloturer(
-    id: string,
-    actorId: string,
-    situation: string | undefined,
-    ip?: string,
-  ) {
-    const brouillard = await brouillardRepository.findById(id);
-    if (!brouillard) {
-      throw ApiError.notFound("Brouillard introuvable.");
-    }
-    if (brouillard.statut !== "OUVERT") {
-      throw ApiError.badRequest(
-        `Ce brouillard est déjà ${brouillard.statut.toLowerCase()}, il ne peut plus être clôturé.`,
+    if (encaissements.length === 0) {
+      throw ApiError.notFound(
+        agenceId
+          ? `Aucun encaissement trouvé pour l'agence ${agenceNom}.`
+          : "Aucun encaissement trouvé.",
       );
     }
 
-    const result = await brouillardRepository.cloturer(id, actorId, situation);
+    let soldeCumule = 0;
+    const toutesLesLignes: LigneBrouillard[] = encaissements.map(
+      (e: EncaissementAvecVente) => {
+        soldeCumule += Number(e.montant);
+        const anneeCourte = String(e.vente.annee).slice(2);
 
-    await logAudit({
-      action: AuditAction.MODIFICATION,
-      entity: "Brouillard",
-      entityId: id,
-      userId: actorId,
-      ip: ip ?? "",
-      message: `Clôture du brouillard du ${brouillard.journee.toLocaleDateString("fr-FR")} (N° TS10 ${brouillard.numeroTS10}).`,
-    });
+        return {
+          numeroPiece: formatNumeroPiece(e.numeroSequence),
+          libelle: `VERS. L5/90 J${String(e.vente.jourAnnee)}/${anneeCourte} ${e.vente.agent}`,
+          date: e.dateEncaissement,
+          recettes: Number(e.montant),
+          depenses: 0,
+          solde: soldeCumule,
+          type: "B" as const,
+        };
+      },
+    );
 
-    return result;
-  },
+    const seuilDebut = dateDebut ? new Date(dateDebut) : null;
+    const seuilFin = dateFin ? new Date(dateFin) : null;
 
-  async valider(id: string, actorId: string, ip?: string) {
-    const brouillard = await brouillardRepository.findById(id);
-    if (!brouillard) {
-      throw ApiError.notFound("Brouillard introuvable.");
+    let ligneOuverture: LigneBrouillard | null = null;
+    let lignesPeriode = toutesLesLignes;
+
+    // La ligne de report n'a de sens QUE si une date de début est précisée
+    // (sinon on affiche tout depuis le premier encaissement, sans rien à reporter).
+    if (seuilDebut) {
+      const operationsAvant = toutesLesLignes.filter(
+        (l) => l.date < seuilDebut,
+      );
+      const soldeOuverture =
+        operationsAvant.length > 0
+          ? operationsAvant[operationsAvant.length - 1].solde
+          : 0;
+
+      ligneOuverture = {
+        numeroPiece: "",
+        libelle: `Solde au ${new Date(seuilDebut.getTime() - 86_400_000).toLocaleDateString("fr-FR")}`,
+        date: seuilDebut,
+        recettes: soldeOuverture,
+        depenses: 0,
+        solde: soldeOuverture,
+        type: "A",
+      };
+
+      lignesPeriode = toutesLesLignes.filter((l) => l.date >= seuilDebut);
     }
-    if (brouillard.statut !== "CLOTURE") {
-      throw ApiError.badRequest("Seul un brouillard clôturé peut être validé.");
+
+    if (seuilFin) {
+      lignesPeriode = lignesPeriode.filter((l) => l.date <= seuilFin);
     }
 
-    const result = await brouillardRepository.valider(id, actorId);
+    const lignes: LigneBrouillard[] = ligneOuverture
+      ? [ligneOuverture, ...lignesPeriode]
+      : lignesPeriode;
 
-    await logAudit({
-      action: AuditAction.VALIDATION,
-      entity: "Brouillard",
-      entityId: id,
-      userId: actorId,
-      ip: ip ?? "",
-      message: `Validation du brouillard du ${brouillard.journee.toLocaleDateString("fr-FR")} (N° TS10 ${brouillard.numeroTS10}).`,
-    });
+    const totalRecettes = lignesPeriode.reduce((sum, l) => sum + l.recettes, 0);
+    const totalDepenses = 0;
+    const soldeFinal = lignes.length > 0 ? lignes[lignes.length - 1].solde : 0;
 
-    return result;
-  },
-
-  async rejeter(id: string, actorId: string, raison: string, ip?: string) {
-    const brouillard = await brouillardRepository.findById(id);
-    if (!brouillard) {
-      throw ApiError.notFound("Brouillard introuvable.");
-    }
-    if (brouillard.statut !== "CLOTURE") {
-      throw ApiError.badRequest("Seul un brouillard clôturé peut être rejeté.");
-    }
-
-    const result = await brouillardRepository.rejeter(id, actorId, raison);
-
-    await logAudit({
-      action: AuditAction.REJET,
-      entity: "Brouillard",
-      entityId: id,
-      userId: actorId,
-      ip: ip ?? "",
-      message: `Rejet du brouillard du ${brouillard.journee.toLocaleDateString("fr-FR")} (N° TS10 ${brouillard.numeroTS10}) : ${raison}`,
-    });
-
-    return result;
+    return {
+      agenceId: agenceId ?? null,
+      agenceNom,
+      numeroRegistre: agenceId
+        ? `Caisse LNT - ${agenceNom}`
+        : "Caisse LNT - Toutes agences",
+      dateDebut: seuilDebut,
+      dateFin: seuilFin,
+      lignes,
+      totalRecettes,
+      totalDepenses,
+      soldeFinal,
+    };
   },
 };

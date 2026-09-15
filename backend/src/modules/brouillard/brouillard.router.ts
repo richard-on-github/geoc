@@ -1,16 +1,12 @@
 import { Router } from "express";
 import { brouillardController } from "./brouillard.controller.js";
+import { brouillardExportController } from "./brouillard-export.controller.js";
 import { authenticate } from "../../middlewares/auth.middleware.js";
 import { requirePermissions } from "../../middlewares/permission.middleware.js";
 import { initRequestContext } from "../../middlewares/context.middleware.js";
 import { validate } from "../../middlewares/validate.middleware.js";
 import { asyncHandler } from "../../utils/asyncHandler.js";
-import {
-  brouillardQuerySchema,
-  brouillardIdParamsSchema,
-  clotureBrouillardSchema,
-  rejeterBrouillardSchema,
-} from "./brouillard.schema.js";
+import { brouillardQuerySchema } from "./brouillard.schema.js";
 
 const router = Router();
 
@@ -21,28 +17,28 @@ router.get(
   "/",
   requirePermissions("brouillard.read"),
   validate({ query: brouillardQuerySchema }),
-  asyncHandler(brouillardController.findAll),
+  asyncHandler(brouillardController.find),
 );
 
-router.post(
-  "/:id/cloturer",
-  requirePermissions("brouillard.manage"),
-  validate({ params: brouillardIdParamsSchema, body: clotureBrouillardSchema }),
-  asyncHandler(brouillardController.cloturer),
+router.get(
+  "/export/csv",
+  requirePermissions("brouillard.export.csv"),
+  validate({ query: brouillardQuerySchema }),
+  asyncHandler(brouillardExportController.export),
 );
 
-router.post(
-  "/:id/valider",
-  requirePermissions("brouillard.manage"),
-  validate({ params: brouillardIdParamsSchema }),
-  asyncHandler(brouillardController.valider),
+router.get(
+  "/export/excel",
+  requirePermissions("brouillard.export.excel"),
+  validate({ query: brouillardQuerySchema }),
+  asyncHandler(brouillardExportController.export),
 );
 
-router.post(
-  "/:id/rejeter",
-  requirePermissions("brouillard.manage"),
-  validate({ params: brouillardIdParamsSchema, body: rejeterBrouillardSchema }),
-  asyncHandler(brouillardController.rejeter),
+router.get(
+  "/export/pdf",
+  requirePermissions("brouillard.export.pdf"),
+  validate({ query: brouillardQuerySchema }),
+  asyncHandler(brouillardExportController.export),
 );
 
 export { router as brouillardRouter };

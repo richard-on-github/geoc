@@ -14,8 +14,6 @@ import {
   periodeToMoisAnnee,
 } from "../../utils/date-vente.js";
 
-import { brouillardService } from "../brouillard/brouillard.service.js";
-
 export const venteService = {
   async getAll(params: VenteQueryParams) {
     const { ventes, total, page, limit } =
@@ -202,20 +200,6 @@ export const venteService = {
     const ventesImportees = await prisma.vente.findMany({
       where: { importId: result.importLog.id },
     });
-
-    for (const venteImportee of ventesImportees) {
-      await brouillardService.recalculer(
-        {
-          id: venteImportee.id,
-          agenceId: venteImportee.agenceId,
-          numeroTS10: venteImportee.numeroTS10,
-          totalVente: venteImportee.totalVente,
-          totalSolde: venteImportee.totalSolde,
-          dateDebut: venteImportee.dateDebut,
-        },
-        [],
-      );
-    }
 
     await logAudit({
       action: AuditAction.IMPORT,

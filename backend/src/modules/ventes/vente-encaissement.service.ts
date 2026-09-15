@@ -2,7 +2,6 @@ import { venteEncaissementRepository } from "./vente-encaissement.repository.js"
 import { ApiError } from "../../utils/ApiError.js";
 import { logAudit } from "../../utils/audit.js";
 import { AuditAction, Encaissement, StatutEncaissement } from "@prisma/client";
-import { brouillardService } from "../brouillard/brouillard.service.js";
 
 function computeStatutEncaissement(
   montantEncaisseCumule: number,
@@ -14,14 +13,6 @@ function computeStatutEncaissement(
 }
 
 export const venteEncaissementService = {
-  /**
-   * @param peutEncaisserPartiel Calculé par le contrôleur à partir des
-   * permissions de l'utilisateur connecté (permission `vente.encaissement.partiel.manage`).
-   * Si l'encaissement en cours d'enregistrement ne solde pas entièrement le
-   * montant dû ET que l'utilisateur n'a pas cette permission, l'opération
-   * est refusée — même s'il a la permission générique `vente.encaissement.manage`
-   * (celle-ci ne couvre que les encaissements soldant intégralement le solde).
-   */
   async enregistrerEncaissement(
     venteId: string,
     montant: number,
@@ -39,6 +30,16 @@ export const venteEncaissementService = {
     const montantEncaisseCumuleAvant =
       await venteEncaissementRepository.sumEncaissements(venteId);
     const montantEncaisseCumuleApres = montantEncaisseCumuleAvant + montant;
+
+    if (montantEncaisseCumuleApres > totalSolde) {
+      const montantRestant = totalSolde - montantEncaisseCumuleAvant;
+      throw ApiError.badRequest(
+        montantRestant > 0
+          ? `Le montant encaissé dépasse le solde restant dû. ` +
+              `Montant restant à encaisser : ${montantRestant} FCFA.`
+          : "Cette vente est déjà entièrement soldée.",
+      );
+    }
 
     const seraitPartiel = montantEncaisseCumuleApres < totalSolde;
 
@@ -68,21 +69,6 @@ export const venteEncaissementService = {
 
     const tousLesEncaissements =
       await venteEncaissementRepository.findEncaissementsByVenteId(venteId);
-
-    await brouillardService.recalculer(
-      {
-        id: vente.id,
-        agenceId: vente.agenceId,
-        numeroTS10: vente.numeroTS10,
-        totalVente: vente.totalVente,
-        totalSolde: vente.totalSolde,
-        dateDebut: vente.dateDebut,
-      },
-      tousLesEncaissements.map((e: Encaissement) => ({
-        montant: e.montant,
-        dateEncaissement: e.dateEncaissement,
-      })),
-    );
 
     await logAudit({
       action: AuditAction.CREATION,

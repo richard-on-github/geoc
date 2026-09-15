@@ -42,23 +42,6 @@ enum StatutEncaissement {
   SOLDE
 }
 
-enum StatutAnomalieBrouillard {
-  OK
-  MOINS_VERSE
-  MOINS_VERSE_RETARD
-  RETARD
-  NON_VERSE
-  TROP_VERSE
-  ANOMALIE
-}
-
-enum StatutBrouillard {
-  OUVERT
-  CLOTURE
-  VALIDE
-  REJETE
-}
-
 model User {
   id String @id @default(cuid())
 
@@ -96,10 +79,6 @@ model User {
   abattementParametres AbattementParametres[]
 
   audits AuditLog[]
-
-  brouillardsClotures Brouillard[] @relation("BrouillardCloture")
-  brouillardsValides  Brouillard[] @relation("BrouillardValidation")
-  brouillardsRejetes  Brouillard[] @relation("BrouillardRejet")
 
   lastLoginAt DateTime?
   createdAt   DateTime  @default(now())
@@ -286,8 +265,6 @@ model Vente {
   importId  String?
   importLog VenteImportLog? @relation(fields: [importId], references: [id], onDelete: SetNull)
 
-  brouillard Brouillard?
-
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -349,6 +326,7 @@ model AbattementParametres {
 
 model Encaissement {
   id               String   @id @default(cuid())
+  numeroSequence   Int      @unique @default(autoincrement())
   venteId          String
   vente            Vente    @relation(fields: [venteId], references: [id], onDelete: Cascade)
   montant          Decimal
@@ -358,49 +336,4 @@ model Encaissement {
   createdAt        DateTime @default(now())
 
   @@index([venteId])
-}
-
-model Brouillard {
-  id         String   @id @default(cuid())
-  venteId    String   @unique
-  vente      Vente    @relation(fields: [venteId], references: [id], onDelete: Cascade)
-  journee    DateTime
-  agenceId   String?
-  numeroTS10 String
-
-  ventes       Decimal @db.Decimal(14, 2)
-  /**
-   * Gains de loterie payés aux gagnants ce jour-là. Aucune source de
-   * données actuellement (ni import, ni saisie) : reste à 0 tant que ce
-   * point n'est pas tranché avec le métier.
-   */
-  gainsPayes   Decimal @default(0) @db.Decimal(14, 2)
-  soldeAttendu Decimal @db.Decimal(14, 2)
-  montantVerse Decimal @default(0) @db.Decimal(14, 2)
-  ecart        Decimal @default(0) @db.Decimal(14, 2)
-  penalite     Decimal @default(0) @db.Decimal(14, 2)
-  situation    String?
-
-  statutAnomalie StatutAnomalieBrouillard @default(OK)
-  statut         StatutBrouillard         @default(OUVERT)
-
-  clotureParId   String?
-  clotureParUser User?     @relation("BrouillardCloture", fields: [clotureParId], references: [id])
-  clotureAt      DateTime?
-
-  valideParId   String?
-  valideParUser User?     @relation("BrouillardValidation", fields: [valideParId], references: [id])
-  valideAt      DateTime?
-
-  rejeteParId   String?
-  rejeteParUser User?     @relation("BrouillardRejet", fields: [rejeteParId], references: [id])
-  rejeteAt      DateTime?
-  rejetRaison   String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([numeroTS10])
-  @@index([journee])
-  @@index([statut])
 }
