@@ -2,6 +2,16 @@ import { Prisma, StatutEncaissement } from "@prisma/client";
 import { prisma } from "../../config/prisma.js";
 import type { VenteQueryParams } from "./vente.interface.js";
 
+/** Forme minimale suffisante pour calculer le montant encaissé par vente. */
+interface VenteAvecId {
+  id: string;
+}
+
+interface SommeEncaisseeParVente {
+  venteId: string;
+  _sum: { montant: Prisma.Decimal | null };
+}
+
 export const venteRepository = {
   async findAll(params: VenteQueryParams) {
     const {
@@ -77,16 +87,19 @@ export const venteRepository = {
     const sommesEncaissees = ventes.length
       ? await prisma.encaissement.groupBy({
           by: ["venteId"],
-          where: { venteId: { in: ventes.map((v) => v.id) } },
+          where: { venteId: { in: ventes.map((v: VenteAvecId) => v.id) } },
           _sum: { montant: true },
         })
       : [];
 
     const montantEncaisseParVente = new Map<string, number>(
-      sommesEncaissees.map((s) => [s.venteId, Number(s._sum.montant ?? 0)]),
+      sommesEncaissees.map((s: SommeEncaisseeParVente) => [
+        s.venteId,
+        Number(s._sum.montant ?? 0),
+      ]),
     );
 
-    const ventesAvecEncaissement = ventes.map((v) => ({
+    const ventesAvecEncaissement = ventes.map((v: VenteAvecId) => ({
       ...v,
       montantEncaisse: montantEncaisseParVente.get(v.id) ?? 0,
     }));
@@ -105,7 +118,9 @@ export const venteRepository = {
    * une vente non clôturée. Sert à vérifier qu'aucun mois antérieur au mois ciblé
    * par un import n'est resté ouvert (règle : on ne peut pas "sauter" un mois).
    */
-  async findMoisAnneeNonClotures(): Promise<Array<{ mois: number; annee: number }>> {
+  async findMoisAnneeNonClotures(): Promise<
+    Array<{ mois: number; annee: number }>
+  > {
     const rows = await prisma.vente.findMany({
       where: { clotureId: null },
       select: { mois: true, annee: true },
