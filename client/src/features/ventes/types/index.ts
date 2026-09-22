@@ -40,6 +40,8 @@ export interface Vente {
   annee: number
   /** Statut d'encaissement du solde à verser, mis à jour à chaque encaissement enregistré. */
   statutEncaissement: StatutEncaissement
+  /** Somme déjà encaissée (cumul des encaissements enregistrés) pour cette vente. */
+  montantEncaisse: number
   createdAt: string
   updatedAt: string
   agence?: {

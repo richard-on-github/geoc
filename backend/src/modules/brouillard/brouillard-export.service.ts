@@ -21,7 +21,6 @@ import {
   COULEUR_SECONDAIRE,
   COULEUR_AVERTISSEMENT,
   COULEUR_FOND_TOTAL,
-  type PdfEncryptionOptions,
 } from "../../utils/pdf-export.js";
 
 export interface ExportMetadataBrouillard {
@@ -185,7 +184,6 @@ export const brouillardExportService = {
   async generatePDF(
     brouillard: BrouillardResult,
     metadata: ExportMetadataBrouillard,
-    encryption: PdfEncryptionOptions,
   ): Promise<PDFKit.PDFDocument> {
     const printer = createPdfPrinter(pdfFonts);
     const logoDataUrl = loadWatermarkLogoDataUrl();
@@ -357,11 +355,7 @@ export const brouillardExportService = {
       },
     };
 
-    const docDefinition: TDocumentDefinitions & PdfEncryptionOptions = {
-      userPassword: encryption.userPassword,
-      ownerPassword: encryption.ownerPassword,
-      permissions: encryption.permissions,
-      version: encryption.version ?? "1.7ext3",
+    const docDefinition: TDocumentDefinitions = {
       pageOrientation: "portrait",
       pageSize: "A4",
       pageMargins: [30, 30, 30, 50],

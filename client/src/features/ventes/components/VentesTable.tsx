@@ -175,7 +175,7 @@ export function VentesTable({ filters }: VentesTableProps) {
       },
       {
         id: 'statutEncaissement',
-        header: 'Encaissement',
+        header: 'Statut',
         enableSorting: false,
         cell: ({ row }) => {
           const statut = row.original.statutEncaissement
@@ -190,6 +190,15 @@ export function VentesTable({ filters }: VentesTableProps) {
             </span>
           )
         },
+      },
+      {
+        id: 'montantEncaisse',
+        header: 'Encaissement',
+        accessorKey: 'montantEncaisse',
+        enableSorting: false,
+        cell: ({ row }) => (
+          <span className="font-medium">{formatCurrency(row.original.montantEncaisse)}</span>
+        ),
       },
       {
         id: 'jourAnnee',
@@ -266,6 +275,7 @@ export function VentesTable({ filters }: VentesTableProps) {
                 'Total Vente',
                 'Payé',
                 'Solde',
+                'Statut',
                 'Encaissement',
                 'Jour',
                 'Période',
@@ -283,7 +293,7 @@ export function VentesTable({ filters }: VentesTableProps) {
           <tbody className="divide-y divide-[hsl(var(--border))] bg-[hsl(var(--card))]">
             {Array.from({ length: 8 }).map((_, i) => (
               <tr key={i}>
-                {Array.from({ length: 12 }).map((_, j) => (
+                {Array.from({ length: 13 }).map((_, j) => (
                   <td key={j} className="px-4 py-3">
                     <div className="h-3.5 w-20 animate-pulse rounded bg-[hsl(var(--muted))]" />
                   </td>

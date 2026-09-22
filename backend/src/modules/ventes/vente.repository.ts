@@ -72,7 +72,26 @@ export const venteRepository = {
       prisma.vente.count({ where }),
     ]);
 
-    return { ventes, total, page, limit };
+    // Colonne "Encaissement" : somme déjà encaissée pour chaque vente de la
+    // page courante (distincte du statut, qui reste sur `statutEncaissement`).
+    const sommesEncaissees = ventes.length
+      ? await prisma.encaissement.groupBy({
+          by: ["venteId"],
+          where: { venteId: { in: ventes.map((v) => v.id) } },
+          _sum: { montant: true },
+        })
+      : [];
+
+    const montantEncaisseParVente = new Map<string, number>(
+      sommesEncaissees.map((s) => [s.venteId, Number(s._sum.montant ?? 0)]),
+    );
+
+    const ventesAvecEncaissement = ventes.map((v) => ({
+      ...v,
+      montantEncaisse: montantEncaisseParVente.get(v.id) ?? 0,
+    }));
+
+    return { ventes: ventesAvecEncaissement, total, page, limit };
   },
 
   async findImportLogByHash(fileHash: string) {

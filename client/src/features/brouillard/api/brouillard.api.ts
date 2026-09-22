@@ -15,7 +15,7 @@ export const brouillardApi = {
   async exportBrouillard(
     params: BrouillardQueryParams,
     format: 'csv' | 'excel' | 'pdf',
-  ): Promise<string | null> {
+  ): Promise<void> {
     const queryString = new URLSearchParams(
       Object.fromEntries(
         Object.entries(params)
@@ -40,19 +40,21 @@ export const brouillardApi = {
       throw new Error("Erreur lors de l'export : réponse inattendue.")
     }
 
-    const rawExportPassword = response.headers['x-export-password'] as unknown
-    const exportPassword =
-      typeof rawExportPassword === 'string' && rawExportPassword !== '' ? rawExportPassword : null
+    const extensions: Record<'csv' | 'excel' | 'pdf', string> = {
+      csv: 'csv',
+      excel: 'xlsx',
+      pdf: 'pdf',
+    }
 
-    const blob = new Blob([response.data], { type: 'application/zip' })
+    const blob = new Blob([response.data], {
+      type: contentType || 'application/octet-stream',
+    })
     const link = document.createElement('a')
     link.href = URL.createObjectURL(blob)
-    link.download = `brouillard_${String(Date.now())}.zip`
+    link.download = `brouillard_${String(Date.now())}.${extensions[format]}`
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
     URL.revokeObjectURL(link.href)
-
-    return exportPassword
   },
 }

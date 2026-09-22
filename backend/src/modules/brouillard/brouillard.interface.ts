@@ -10,7 +10,8 @@ export interface BrouillardQueryParams {
 export type TypeLigneBrouillard = "A" | "B";
 
 export interface LigneBrouillard {
-  /** Vide pour la ligne d'ouverture (type A). */
+  /** Numéro du reçu généré pour l'encaissement (voir genererNumeroRecu).
+   *  Vide pour la ligne d'ouverture (type A). */
   numeroPiece: string;
   libelle: string;
   date: Date;

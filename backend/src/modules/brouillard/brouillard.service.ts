@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "../../config/prisma.js";
 import { ApiError } from "../../utils/ApiError.js";
+import { genererNumeroRecu } from "../../utils/recu.js";
 import type {
   BrouillardQueryParams,
   BrouillardResult,
@@ -10,10 +11,6 @@ import type {
 type EncaissementAvecVente = Prisma.EncaissementGetPayload<{
   include: { vente: true };
 }>;
-
-function formatNumeroPiece(numeroSequence: number): string {
-  return String(numeroSequence).padStart(10, "0");
-}
 
 export const brouillardService = {
   async getBrouillard(
@@ -59,7 +56,7 @@ export const brouillardService = {
         const anneeCourte = String(e.vente.annee).slice(2);
 
         return {
-          numeroPiece: formatNumeroPiece(e.numeroSequence),
+          numeroPiece: genererNumeroRecu(e.id),
           libelle: `VERS. L5/90 J${String(e.vente.jourAnnee)}/${anneeCourte} ${e.vente.agent}`,
           date: e.dateEncaissement,
           recettes: Number(e.montant),

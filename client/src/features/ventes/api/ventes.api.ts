@@ -32,6 +32,7 @@ type VenteApiRaw = {
   mois?: unknown
   annee?: unknown
   statutEncaissement?: unknown
+  montantEncaisse?: unknown
   createdAt?: unknown
   updatedAt?: unknown
   agence?: unknown
@@ -76,6 +77,7 @@ function mapVente(raw: VenteApiRaw): Vente {
     mois: asNumber(raw.mois),
     annee: asNumber(raw.annee),
     statutEncaissement: asStatutEncaissement(raw.statutEncaissement),
+    montantEncaisse: asNumber(raw.montantEncaisse),
     createdAt: asString(raw.createdAt),
     updatedAt: asString(raw.updatedAt),
   }

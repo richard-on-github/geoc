@@ -8,6 +8,7 @@ import {
   formatDateCourte,
 } from "../../utils/pdf-export.js";
 import { montantEnLettres } from "../../utils/nombre-en-lettres.js";
+import { genererNumeroRecu } from "../../utils/recu.js";
 
 function buildReceiptBlock(
   encaissement: { id: string; montant: number; dateEncaissement: Date },
@@ -21,7 +22,7 @@ function buildReceiptBlock(
   copie: "CLIENT" | "AGENCE",
   agentConnecte: string,
 ): Column {
-  const numeroRecu = `260${encaissement.id.slice(0, 6).toUpperCase()}`;
+  const numeroRecu = genererNumeroRecu(encaissement.id);
   const dateStr = formatDateCourte(encaissement.dateEncaissement);
   const montantStr = formatCurrency(encaissement.montant);
 
