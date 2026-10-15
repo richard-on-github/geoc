@@ -1,42 +1,19 @@
-name: Deploy GEOC App to VPS
+name: Deploy GEOC
 
 on:
   push:
     branches:
-      - main
+      - dev
 
 jobs:
-  deploy:
+  deploy-dev:
     runs-on: ubuntu-latest
-
+    concurrency: deploy-dev
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Déploiement automatique sur le VPS via SSH
+      - name: Déploiement dev via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
-          script: |
-            set -e
-
-            echo "=== 1. Mise à jour du Backend ==="
-            cd /var/www/apps/geoc/backend
-            git pull origin main
-            npm ci
-            npx prisma generate
-            npx prisma migrate deploy
-            npx prisma db seed
-            chmod +x node_modules/7zip-bin/linux/x64/7za 2>/dev/null || true
-            npm run build
-            pm2 restart geoc-backend
-
-            echo "=== 2. Mise à jour du Frontend ==="
-            cd /var/www/apps/geoc/client
-            git pull origin main
-            npm ci
-            npm run build
-
-            echo "=== Déploiement terminé avec succès ! ==="
+          script: /var/www/apps/geoc/deploy.sh dev
