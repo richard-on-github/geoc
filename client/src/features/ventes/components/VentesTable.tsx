@@ -19,7 +19,7 @@ import {
   Wallet,
   CheckCircle2,
 } from 'lucide-react'
-import { useVentes } from '../hooks'
+import { useVentes, useVenteTotals } from '../hooks'
 import { EmptyState } from '@/shared/components/feedback/EmptyState'
 import { Can } from '@/shared/components/navigation/Can'
 import { cn } from '@/shared/lib'
@@ -96,6 +96,25 @@ export function VentesTable({ filters }: VentesTableProps) {
     }),
     [pagination, sorting, filters],
   )
+
+  const totalsParams = useMemo(
+    () => ({
+      search: toOptionalString(filters.search),
+      agenceId: toOptionalString(filters.agenceId),
+      dateDebut: toOptionalString(filters.dateDebut),
+      dateFin: toOptionalString(filters.dateFin),
+      clotureId: toOptionalString(filters.clotureId),
+      statutEncaissement: filters.statutEncaissement,
+      nonClotureesOnly: filters.nonClotureesOnly === true ? true : undefined,
+      jour: filters.jour,
+      mois: filters.mois,
+      annee: filters.annee,
+    }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [filters],
+  )
+
+  const { data: totals } = useVenteTotals(totalsParams)
 
   const { data, isPending, isFetching } = useVentes(queryParams)
   const isLoading = isPending && isFetching
@@ -259,49 +278,81 @@ export function VentesTable({ filters }: VentesTableProps) {
     manualPagination: true,
   })
 
+  const totalsBar = totals && (
+    <div className="grid grid-cols-2 gap-3 rounded-(--radius) border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-4 text-sm sm:grid-cols-5">
+      <div>
+        <span className="text-[hsl(var(--muted-foreground))]">Ventes</span>
+        <p className="font-semibold">{totals.nombreVentes}</p>
+      </div>
+      <div>
+        <span className="text-[hsl(var(--muted-foreground))]">Total Vente</span>
+        <p className="font-semibold">{formatCurrency(totals.totalVente)}</p>
+      </div>
+      <div>
+        <span className="text-[hsl(var(--muted-foreground))]">Total Payé</span>
+        <p className="font-semibold">{formatCurrency(totals.totalPaye)}</p>
+      </div>
+      <div>
+        <span className="text-[hsl(var(--muted-foreground))]">Total Solde</span>
+        <p
+          className={cn('font-semibold', totals.totalSolde > 0 && 'text-[hsl(var(--destructive))]')}
+        >
+          {formatCurrency(totals.totalSolde)}
+        </p>
+      </div>
+      <div>
+        <span className="text-[hsl(var(--muted-foreground))]">Total Encaissé</span>
+        <p className="font-semibold">{formatCurrency(totals.montantEncaisse)}</p>
+      </div>
+    </div>
+  )
+
   // Loader
   if (isLoading) {
     return (
-      <div className="overflow-hidden rounded-lg border border-[hsl(var(--border))]">
-        <table className="w-full text-sm">
-          <thead className="bg-[hsl(var(--muted))]">
-            <tr>
-              {[
-                'Agence',
-                'Kiosque',
-                'Agent',
-                'Banque',
-                'N° TS10',
-                'Total Vente',
-                'Payé',
-                'Solde',
-                'Statut',
-                'Encaissement',
-                'Jour',
-                'Période',
-                '',
-              ].map((h) => (
-                <th
-                  key={h}
-                  className="px-4 py-3 text-left text-xs font-medium tracking-wider text-[hsl(var(--muted-foreground))] uppercase"
-                >
-                  {h}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-[hsl(var(--border))] bg-[hsl(var(--card))]">
-            {Array.from({ length: 8 }).map((_, i) => (
-              <tr key={i}>
-                {Array.from({ length: 13 }).map((_, j) => (
-                  <td key={j} className="px-4 py-3">
-                    <div className="h-3.5 w-20 animate-pulse rounded bg-[hsl(var(--muted))]" />
-                  </td>
+      <div className="space-y-4">
+        {totalsBar}
+        <div className="overflow-hidden rounded-lg border border-[hsl(var(--border))]">
+          <table className="w-full text-sm">
+            <thead className="bg-[hsl(var(--muted))]">
+              <tr>
+                {[
+                  'Agence',
+                  'Kiosque',
+                  'Agent',
+                  'Banque',
+                  'N° TS10',
+                  'Total Vente',
+                  'Payé',
+                  'Solde',
+                  'Statut',
+                  'Encaissement',
+                  'Jour',
+                  'Période',
+                  '',
+                ].map((h) => (
+                  <th
+                    key={h}
+                    className="px-4 py-3 text-left text-xs font-medium tracking-wider text-[hsl(var(--muted-foreground))] uppercase"
+                  >
+                    {h}
+                  </th>
                 ))}
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-[hsl(var(--border))] bg-[hsl(var(--card))]">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <tr key={i}>
+                  {Array.from({ length: 13 }).map((_, j) => (
+                    <td key={j} className="px-4 py-3">
+                      <div className="h-3.5 w-20 animate-pulse rounded bg-[hsl(var(--muted))]" />
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     )
   }
@@ -310,12 +361,15 @@ export function VentesTable({ filters }: VentesTableProps) {
   const venteItems = data?.items ?? []
   if (venteItems.length === 0) {
     return (
-      <div className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))]">
-        <EmptyState
-          icon={Receipt}
-          title="Aucune vente"
-          description="Importez un fichier de ventes pour commencer."
-        />
+      <div className="space-y-4">
+        {totalsBar}
+        <div className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))]">
+          <EmptyState
+            icon={Receipt}
+            title="Aucune vente"
+            description="Importez un fichier de ventes pour commencer."
+          />
+        </div>
       </div>
     )
   }
@@ -326,6 +380,7 @@ export function VentesTable({ filters }: VentesTableProps) {
 
   return (
     <div className="space-y-4">
+      {totalsBar}
       <div className="overflow-x-auto rounded-lg border border-[hsl(var(--border))] shadow-sm">
         <table className="w-full text-sm" aria-label="Liste des ventes">
           <thead className="bg-[hsl(var(--muted))]">

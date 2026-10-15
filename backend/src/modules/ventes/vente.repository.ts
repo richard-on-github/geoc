@@ -12,64 +12,94 @@ interface SommeEncaisseeParVente {
   _sum: { montant: Prisma.Decimal | null };
 }
 
+/**
+ * Construit le `where` Prisma à partir des filtres de la requête. Partagé entre
+ * `findAll` (liste paginée) et `getTotals` (sommes sur l'ensemble filtré, sans
+ * pagination) pour garantir que les deux portent exactement sur le même
+ * périmètre de ventes.
+ */
+function buildVenteWhere(
+  params: Pick<
+    VenteQueryParams,
+    | "search"
+    | "agenceId"
+    | "agenceNom"
+    | "dateDebut"
+    | "dateFin"
+    | "clotureId"
+    | "nonClotureesOnly"
+    | "statutEncaissement"
+    | "jour"
+    | "mois"
+    | "annee"
+  >,
+): Prisma.VenteWhereInput {
+  const {
+    search,
+    agenceId,
+    agenceNom,
+    dateDebut,
+    dateFin,
+    clotureId,
+    nonClotureesOnly,
+    statutEncaissement,
+    jour,
+    mois,
+    annee,
+  } = params;
+
+  const where: Prisma.VenteWhereInput = {};
+
+  if (search) {
+    where.OR = [
+      { kiosque: { contains: search, mode: "insensitive" } },
+      { agent: { contains: search, mode: "insensitive" } },
+      { numeroTS10: { contains: search, mode: "insensitive" } },
+    ];
+  }
+
+  if (agenceId) where.agenceId = agenceId;
+
+  if (agenceNom) where.agenceNom = agenceNom;
+
+  if (nonClotureesOnly) {
+    where.clotureId = null;
+  }
+
+  if (clotureId) {
+    where.clotureId = clotureId;
+  }
+
+  if (statutEncaissement) {
+    where.statutEncaissement = statutEncaissement as StatutEncaissement;
+  }
+
+  if (dateDebut || dateFin) {
+    where.dateDebut = {};
+    if (dateDebut) where.dateDebut.gte = new Date(dateDebut);
+    if (dateFin) where.dateDebut.lte = new Date(dateFin);
+  }
+
+  // Filtres indépendants de la plage dateDebut/dateFin : jour de l'année,
+  // mois ou année, calculés une fois pour toutes à l'import.
+  if (jour) where.jourAnnee = jour;
+  if (mois) where.mois = mois;
+  if (annee) where.annee = annee;
+
+  return where;
+}
+
 export const venteRepository = {
   async findAll(params: VenteQueryParams) {
     const {
       page = 1,
       limit = 50,
-      search,
-      agenceId,
-      agenceNom,
-      dateDebut,
-      dateFin,
-      clotureId,
-      nonClotureesOnly,
-      statutEncaissement,
-      jour,
-      mois,
-      annee,
       sortBy = "dateDebut",
       sortOrder = "desc",
     } = params;
 
     const skip = (page - 1) * limit;
-    const where: Prisma.VenteWhereInput = {};
-
-    if (search) {
-      where.OR = [
-        { kiosque: { contains: search, mode: "insensitive" } },
-        { agent: { contains: search, mode: "insensitive" } },
-        { numeroTS10: { contains: search, mode: "insensitive" } },
-      ];
-    }
-
-    if (agenceId) where.agenceId = agenceId;
-
-    if (agenceNom) where.agenceNom = agenceNom;
-
-    if (nonClotureesOnly) {
-      where.clotureId = null;
-    }
-
-    if (clotureId) {
-      where.clotureId = clotureId;
-    }
-
-    if (statutEncaissement) {
-      where.statutEncaissement = statutEncaissement as StatutEncaissement;
-    }
-
-    if (dateDebut || dateFin) {
-      where.dateDebut = {};
-      if (dateDebut) where.dateDebut.gte = new Date(dateDebut);
-      if (dateFin) where.dateDebut.lte = new Date(dateFin);
-    }
-
-    // Filtres indépendants de la plage dateDebut/dateFin : jour de l'année,
-    // mois ou année, calculés une fois pour toutes à l'import.
-    if (jour) where.jourAnnee = jour;
-    if (mois) where.mois = mois;
-    if (annee) where.annee = annee;
+    const where = buildVenteWhere(params);
 
     const [ventes, total] = await Promise.all([
       prisma.vente.findMany({
@@ -105,6 +135,36 @@ export const venteRepository = {
     }));
 
     return { ventes: ventesAvecEncaissement, total, page, limit };
+  },
+
+  /**
+   * Sommes agrégées (vente, payé, solde, encaissé) sur TOUT l'ensemble de
+   * ventes correspondant aux filtres, indépendamment de la pagination —
+   * destiné à l'affichage d'un total au-dessus du tableau, qui doit refléter
+   * les filtres actifs et non la seule page courante.
+   */
+  async getTotals(params: VenteQueryParams) {
+    const where = buildVenteWhere(params);
+
+    const [agregat, sommeEncaissements] = await Promise.all([
+      prisma.vente.aggregate({
+        where,
+        _sum: { totalVente: true, totalPaye: true, totalSolde: true },
+        _count: true,
+      }),
+      prisma.encaissement.aggregate({
+        where: { vente: where },
+        _sum: { montant: true },
+      }),
+    ]);
+
+    return {
+      nombreVentes: agregat._count,
+      totalVente: Number(agregat._sum.totalVente ?? 0),
+      totalPaye: Number(agregat._sum.totalPaye ?? 0),
+      totalSolde: Number(agregat._sum.totalSolde ?? 0),
+      montantEncaisse: Number(sommeEncaissements._sum.montant ?? 0),
+    };
   },
 
   async findImportLogByHash(fileHash: string) {

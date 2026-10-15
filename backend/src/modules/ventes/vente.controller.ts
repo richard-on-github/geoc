@@ -15,6 +15,12 @@ export const venteController = {
     successResponse(res, HTTP_STATUS.OK, "Liste des ventes récupérée", result);
   },
 
+  async getTotals(req: Request, res: Response, next: NextFunction) {
+    const query = req.query as unknown as VenteQueryParams;
+    const result = await venteService.getTotals(query);
+    successResponse(res, HTTP_STATUS.OK, "Totaux des ventes récupérés", result);
+  },
+
   async importFile(req: Request, res: Response, next: NextFunction) {
     if (!req.file) {
       throw ApiError.badRequest("Aucun fichier n'a été fourni");

@@ -34,6 +34,13 @@ router.get(
   asyncHandler(venteController.findAll),
 );
 
+router.get(
+  "/totals",
+  requirePermissions("vente.read"),
+  validate({ query: venteQuerySchema }),
+  asyncHandler(venteController.getTotals),
+);
+
 router.post(
   ROUTES.VENTE.IMPORT,
   requirePermissions("vente.import"),

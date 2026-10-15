@@ -67,6 +67,18 @@ export interface VenteQueryParams {
   sortOrder?: 'asc' | 'desc' | undefined
 }
 
+/**
+ * Sommes agrégées sur l'ensemble des ventes correspondant aux filtres actifs
+ * (indépendant de la pagination) — affichées au-dessus du tableau des ventes.
+ */
+export interface VenteTotals {
+  nombreVentes: number
+  totalVente: number
+  totalPaye: number
+  totalSolde: number
+  montantEncaisse: number
+}
+
 export type ImportVentePayload = FormData
 
 export interface VenteFiltersState {

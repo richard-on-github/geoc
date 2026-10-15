@@ -5,6 +5,7 @@ import type {
   Vente,
   VenteQueryParams,
   VenteCloture,
+  VenteTotals,
   StatutEncaissement,
   EncaissementInput,
   EncaissementResult,
@@ -118,6 +119,19 @@ export const ventesApi = {
       limit: pagination.limit,
       totalPages: pagination.totalPages,
     }
+  },
+
+  /**
+   * Sommes (vente, payé, solde, encaissé) sur tout l'ensemble filtré, indépendamment
+   * de la pagination. Accepte les mêmes filtres que getVentes (page/limit sont ignorés
+   * côté backend pour ce calcul).
+   */
+  async getTotals(params: VenteQueryParams): Promise<VenteTotals> {
+    const response = await axiosInstance.get<{ success: boolean; data: VenteTotals }>(
+      `${BASE_URL}/totals`,
+      { params },
+    )
+    return response.data.data
   },
 
   async importVentes(file: File, periode: string): Promise<void> {

@@ -8,6 +8,7 @@ export const VENTE_QUERY_KEYS = {
   all: ['ventes'] as const,
   lists: () => [...VENTE_QUERY_KEYS.all, 'list'] as const,
   list: (params: object) => [...VENTE_QUERY_KEYS.lists(), params] as const,
+  totals: (params: object) => [...VENTE_QUERY_KEYS.all, 'totals', params] as const,
   clotures: () => [...VENTE_QUERY_KEYS.all, 'clotures'] as const,
 }
 
@@ -19,13 +20,28 @@ export function useVentes(params: VenteQueryParams) {
   })
 }
 
+/**
+ * Totaux (vente, payé, solde, encaissé) sur l'ensemble des ventes filtrées,
+ * indépendamment de la pagination. À appeler avec les mêmes filtres que useVentes
+ * (sans page/limit/sortBy, non pertinents pour ce calcul).
+ */
+export function useVenteTotals(
+  params: Omit<VenteQueryParams, 'page' | 'limit' | 'sortBy' | 'sortOrder'>,
+) {
+  return useQuery({
+    queryKey: VENTE_QUERY_KEYS.totals(params),
+    queryFn: () => ventesApi.getTotals(params),
+    placeholderData: (prev) => prev,
+  })
+}
+
 export function useImportVentes() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (input: { file: File; periode: string }) =>
       ventesApi.importVentes(input.file, input.periode),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: VENTE_QUERY_KEYS.lists() })
+      void qc.invalidateQueries({ queryKey: VENTE_QUERY_KEYS.all })
       toast.success('Import des ventes réussi.')
     },
     onError: (error) => {
@@ -46,7 +62,7 @@ export function useCloturerMois() {
   return useMutation({
     mutationFn: (periode: string) => ventesApi.cloturerMois(periode),
     onSuccess: (data) => {
-      void qc.invalidateQueries({ queryKey: VENTE_QUERY_KEYS.lists() })
+      void qc.invalidateQueries({ queryKey: VENTE_QUERY_KEYS.all })
       void qc.invalidateQueries({ queryKey: VENTE_QUERY_KEYS.clotures() })
       toast.success(`La période ${data.periode} a été clôturée avec succès.`)
     },
@@ -62,7 +78,7 @@ export function useAnnulerCloture() {
   return useMutation({
     mutationFn: (periode: string) => ventesApi.annulerCloture(periode),
     onSuccess: (data) => {
-      void qc.invalidateQueries({ queryKey: VENTE_QUERY_KEYS.lists() })
+      void qc.invalidateQueries({ queryKey: VENTE_QUERY_KEYS.all })
       void qc.invalidateQueries({ queryKey: VENTE_QUERY_KEYS.clotures() })
       toast.success(`La clôture de la période ${data.periode} a été annulée.`)
     },

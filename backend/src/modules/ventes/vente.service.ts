@@ -22,6 +22,10 @@ export const venteService = {
     return { ventes, pagination };
   },
 
+  async getTotals(params: VenteQueryParams) {
+    return venteRepository.getTotals(params);
+  },
+
   async importVentes(
     fileBuffer: Buffer,
     parsedRows: ParsedVenteRow[],
